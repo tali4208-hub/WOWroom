@@ -30,6 +30,7 @@ a{color:inherit}
 .dd.act{border-color:var(--ac);color:var(--ac);font-weight:700}
 button.dd::after{content:"▾";font-size:11px;opacity:.6}
 .sp{flex:1}
+.clr{border:0;background:none;color:var(--ac);font-size:14px;cursor:pointer;padding:8px 4px;text-decoration:underline}
 .panel{display:none;max-width:1080px;margin:0 auto;padding:4px 16px 16px;max-height:70vh;overflow:auto}
 .panel.open{display:block}
 .pg{margin-top:12px}
@@ -103,11 +104,13 @@ button.dd::after{content:"▾";font-size:11px;opacity:.6}
       <button data-t="" class="on">全部</button>
       <button data-t="studio">套房</button>
       <button data-t="home">整層住家</button>
-      <button data-t="biz">店面・辦公</button>
+      <button data-t="shop">店面</button>
+      <button data-t="office">辦公</button>
     </div>
     <button class="dd" id="bArea" data-p="pArea">區域</button>
     <button class="dd" id="bRent" data-p="pRent">租金</button>
     <button class="dd" id="bKw" data-p="pKw">特色</button>
+    <button class="clr" id="clrAll">清除</button>
     <span class="sp"></span>
     <select class="dd" id="sort">
       <option value="new">最新刊登</option>
@@ -126,6 +129,7 @@ button.dd::after{content:"▾";font-size:11px;opacity:.6}
   </div>
   <div class="panel" id="pKw">
     <div class="chips" id="kws"></div>
+    <div class="phint" id="kwNote"></div>
     <div class="phint">可複選；選多個＝要同時符合。數字是目前條件下符合的間數。</div>
     <div class="pf"><button class="pbtn gh" id="clrKw">清除</button><button class="pbtn" data-close>看結果</button></div>
   </div>
@@ -139,39 +143,51 @@ button.dd::after{content:"▾";font-size:11px;opacity:.6}
   <div class="info" id="info"></div>
   <div class="list" id="list"></div>
   <div class="msg" id="msg">物件讀取中…</div>
+  <div style="text-align:center;font-size:12px;color:var(--mut);margin-top:24px">WOW 台中租屋 <span id="ver"></span></div>
 </main>
 
 <script>
 /* ===== 設定（只要改這裡）===== */
 const LANDLORD_ID = 'ualjjinlhrglzm69';            // 租租通「WOW台中租屋小幫手」
 const LINE_URL    = 'https://line.me/ti/p/4Kk6A8hKbV';
-const VERSION     = 'v1.1.0';
-/* 特色按鈕：[按鈕文字, 標題裡出現哪些字就算符合]（照標題常用關鍵字排，常用的在前） */
+const VERSION     = 'v1.3.1';
+/* 特色按鈕：[按鈕文字, 標題裡出現哪些字就算符合, 顯示在哪些類型]
+   類型：s＝套房、h＝整層住家（店面、辦公不顯示特色；「全部」＝套房＋住家的都列）
+   ※ 只比對「標題」，不看內文 */
 const KEYWORDS = [
-  ['陽台獨洗', /陽台獨洗/],
-  ['獨洗獨曬', /獨洗獨曬/],
-  ['獨洗脫烘', /獨洗脫烘|獨立洗脫烘/],
-  ['可養貓',   /可寵|可貓/],
-  ['可養狗',   /可寵/],
-  ['租屋補助', /租屋補助|租補/],
-  ['雙租屋補助', /雙租屋補助|雙租補/],
-  ['電梯',     /電梯/],
-  ['子母車',   /子母車/],
-  ['管理員',   /管理員|管理室/],
-  ['飲水機',   /飲水機/],
-  ['流理台',   /流理台|流理臺/],
-  ['乾濕分離', /乾溼分離|乾濕分離/],
-  ['機車位',   /機車位/],
-  ['汽車位',   /(?<!機)車位/],
-  ['家具電全配', /家具電全配/],
-  ['免爬高',   /免爬/],
-  ['小資專屬', /小資/],
-  ['全新完工/整理', /全新/],
-  ['台水台電', /台水台電/],
-  ['可戶籍',   /戶籍/],
-  ['可報稅',   /報稅/],
-  ['浴缸',     /浴缸/],
+  ['陽台獨洗', /陽台獨洗/,              's'],
+  ['獨洗獨曬', /獨洗獨曬/,              's'],
+  ['獨洗脫烘', /獨洗脫烘|獨立洗脫烘/,   's'],
+  ['可養貓',   /可寵|可貓/,             'sh'],
+  ['可養狗',   /可寵/,                  'sh'],
+  ['租屋補助', /租屋補助|租補/,         'sh'],   // 含「雙租屋補助」
+  ['電梯',     /電梯/,                  'sh'],
+  ['子母車',   /子母車/,                'sh'],
+  ['管理員',   /管理員|管理室/,         'sh'],
+  ['飲水機',   /飲水機/,                's'],
+  ['流理台',   /流理台|流理臺/,         's'],
+  ['乾濕分離', /乾溼分離|乾濕分離/,     's'],
+  ['機車位',   /機車位/,                'sh'],
+  ['汽車位',   /(?<!機)車位/,           's'],
+  ['平面車位', /平面車位|門前.{0,2}車位/, 'h'],   // 門前車位算平面
+  ['機械車位', t => /(?<!機)車位/.test(t) && !/平面車位|門前.{0,2}車位/.test(t), 'h'],   // 沒寫類型的車位都算機械
+  ['家具電全配', /家具電全配/,          'sh'],
+  ['免爬高',   /免爬/,                  'h'],
+  ['全新完工/整理', /全新/,             'sh'],
+  ['台水台電', /台水台電/,              'sh'],
+  ['可戶籍',   /戶籍/,                  'sh'],
+  ['可報稅',   /報稅/,                  'sh'],
+  ['浴缸',     /浴缸/,                  'sh'],
 ];
+const KW_NOTE = '此為網站抓取，以實際為主，可直接加LINE詢問';
+/* 租金快選：依類型不同（[文字, 最低, 最高]） */
+const RENT_SETS = {
+  '':     [['不限',0,1e9],['6,000 以下',0,5999],['6,000 – 7,999',6000,7999],['8,000 – 9,999',8000,9999],['10,000 – 14,999',10000,14999],['15,000 – 19,999',15000,19999],['20,000 以上',20000,1e9]],
+  home:   [['不限',0,1e9],['20,000 以下',0,19999],['20,000 – 24,999',20000,24999],['25,000 – 29,999',25000,29999],['30,000 – 34,999',30000,34999],['35,000 – 39,999',35000,39999],['40,000 以上',40000,1e9]],
+  biz:    [['不限',0,1e9],['20,000 以下',0,19999],['20,000 – 29,999',20000,29999],['30,000 – 49,999',30000,49999],['50,000 – 99,999',50000,99999],['100,000 以上',100000,1e9]],
+};
+RENT_SETS.studio = RENT_SETS[''];
+RENT_SETS.shop = RENT_SETS.office = RENT_SETS.biz;
 /* ============================ */
 
 const API = p => `https://api.dd-room.com/api/v1/landlord/objects/${LANDLORD_ID}?category=&page=${p}&per_page=20&order=sort_at&sort=desc`;
@@ -181,16 +197,21 @@ const GROUPS = [
   ['山線',['豐原區','后里區','石岡區','東勢區','和平區','新社區','潭子區','大雅區','神岡區']],
   ['海線',['沙鹿區','梧棲區','清水區','大甲區','外埔區','大安區','龍井區','大肚區']],
 ];
-const RENTS = [['不限',0,1e9],['6,000 以下',0,5999],['6,000 – 7,999',6000,7999],['8,000 – 9,999',8000,9999],['10,000 – 14,999',10000,14999],['15,000 – 19,999',15000,19999],['20,000 以上',20000,1e9]];
-const TYPES = {studio:'套房', home:'整層住家', biz:'店面・辦公'};
+let RENTS = RENT_SETS[''];
+const kwTest = (k, t) => typeof k[1] === 'function' ? k[1](t) : k[1].test(t);
+const isBiz = t => t === 'shop' || t === 'office';
+const kwShown = i => isBiz(selType) ? false : selType === 'studio' ? KEYWORDS[i][2].includes('s') : selType === 'home' ? KEYWORDS[i][2].includes('h') : true;
+const TYPES = {studio:'套房', home:'整層住家', shop:'店面', office:'辦公'};
 
 let ALL = [], selAreas = new Set(), selKw = new Set(), rentPreset = 0, selType = '';
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt = n => Number(n).toLocaleString();
-const typeOf = o => o.category === 'house' ? (o.type_space_name === '整層' ? 'home' : 'studio') : 'biz';
+const typeOf = o => o.category === 'house' ? (o.type_space_name === '整層' ? 'home' : 'studio') : (o.category === 'office' ? 'office' : 'shop');
 
 $('lineBtn').href = LINE_URL;
+$('ver').textContent = VERSION;
+$('kwNote').textContent = '※ ' + KW_NOTE;
 
 /* 下拉面板 */
 document.querySelectorAll('.bar-in .dd[data-p]').forEach(b => b.onclick = () => {
@@ -225,7 +246,7 @@ async function load(){
       o._ord = i * 100 + j;
       o._text = (o.title + ' ' + (o.address?.complete || '') + ' ' + (o.type_space_name || '') + ' ' + (o.category_name || '')).toLowerCase();
       o._type = typeOf(o);
-      o._kw = KEYWORDS.map(k => k[1].test(o.title));
+      o._kw = KEYWORDS.map(k => kwTest(k, o.title));
       ALL.push(o);
     }));
     const d = new Date();
@@ -242,6 +263,11 @@ $('types').onclick = e => {
   const b = e.target.closest('button'); if (!b) return;
   selType = b.dataset.t;
   [...$('types').children].forEach(x => x.classList.toggle('on', x === b));
+  // 換類型：租金快選換成該類型的級距；不適用的特色取消
+  RENTS = RENT_SETS[selType]; rentPreset = 0; $('minR').value=''; $('maxR').value=''; buildRent();
+  [...selKw].forEach(i => { if (!kwShown(i)) selKw.delete(i); });
+  $('bKw').style.display = isBiz(selType) ? 'none' : '';
+  if (isBiz(selType)) $('pKw').classList.remove('open');
   render();
 };
 
@@ -279,6 +305,7 @@ $('clrArea').onclick = () => { selAreas.clear(); render(); };
 /* 特色 */
 function buildKw(base){
   $('kws').innerHTML = KEYWORDS.map((k,i) => {
+    if (!kwShown(i)) return '';
     const n = base.filter(o => o._kw[i]).length, on = selKw.has(i);
     if (!n && !on) return '';
     return `<span class="chip${on?' on':''}" data-k="${i}">${k[0]}<em>${n}</em></span>`;
@@ -290,6 +317,14 @@ $('kws').onclick = e => {
 };
 $('clrKw').onclick = () => { selKw.clear(); render(); };
 
+$('clrAll').onclick = () => {
+  selType = ''; [...$('types').children].forEach(x => x.classList.toggle('on', x.dataset.t === ''));
+  RENTS = RENT_SETS['']; rentPreset = 0; $('minR').value=''; $('maxR').value=''; buildRent();
+  selAreas.clear(); selKw.clear(); $('q').value = '';
+  $('bKw').style.display = '';
+  document.querySelectorAll('.panel').forEach(x => x.classList.remove('open'));
+  render();
+};
 $('q').oninput = render;
 $('sort').onchange = render;
 
