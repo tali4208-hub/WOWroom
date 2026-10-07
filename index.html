@@ -61,6 +61,9 @@ button.dd::after{content:"▾";font-size:11px;opacity:.6}
 .st{flex:1;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 14px}
 .st small{display:block;font-size:12px;color:var(--mut)}
 .st b{font-size:20px;color:var(--br)}
+.cnt{font-size:16px;color:var(--br);margin-right:6px}
+.rowi{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:12px}
+.rowi .info{margin-bottom:0}
 .info{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:12px;font-size:14px}
 .tag{background:var(--cr2);border-radius:6px;padding:3px 8px;font-size:13px;cursor:pointer}
 .tag::after{content:" ✕";opacity:.5}
@@ -84,7 +87,7 @@ button.dd::after{content:"▾";font-size:11px;opacity:.6}
   .bar-in{gap:6px}
   .dd{padding:8px 9px}
   .sp{display:none}
-  #sort{margin-left:auto}
+  #sort{max-width:118px;padding:7px 6px;flex-shrink:0}
 }
 </style>
 </head>
@@ -111,12 +114,6 @@ button.dd::after{content:"▾";font-size:11px;opacity:.6}
     <button class="dd" id="bRent" data-p="pRent">租金</button>
     <button class="dd" id="bKw" data-p="pKw">特色</button>
     <button class="clr" id="clrAll">清除</button>
-    <span class="sp"></span>
-    <select class="dd" id="sort">
-      <option value="new">最新刊登</option>
-      <option value="low">租金 低→高</option>
-      <option value="high">租金 高→低</option>
-    </select>
   </div>
   <div class="panel" id="pArea">
     <div id="areas"></div>
@@ -136,11 +133,11 @@ button.dd::after{content:"▾";font-size:11px;opacity:.6}
 </div>
 
 <main class="wrap">
-  <div class="stats">
-    <div class="st"><small>符合條件</small><b id="sN">–</b></div>
-    <div class="st"><small>租金中位數</small><b id="sMed">–</b></div>
-  </div>
-  <div class="info" id="info"></div>
+  <div class="rowi"><div class="info" id="info"></div><select class="dd" id="sort">
+      <option value="new">最新刊登</option>
+      <option value="low">租金 低→高</option>
+      <option value="high">租金 高→低</option>
+    </select></div>
   <div class="list" id="list"></div>
   <div class="msg" id="msg">物件讀取中…</div>
   <div style="text-align:center;font-size:12px;color:var(--mut);margin-top:24px">WOW 台中租屋 <span id="ver"></span></div>
@@ -150,11 +147,12 @@ button.dd::after{content:"▾";font-size:11px;opacity:.6}
 /* ===== 設定（只要改這裡）===== */
 const LANDLORD_ID = 'ualjjinlhrglzm69';            // 租租通「WOW台中租屋小幫手」
 const LINE_URL    = 'https://line.me/ti/p/4Kk6A8hKbV';
-const VERSION     = 'v1.3.1';
+const VERSION     = 'v1.4.0';
 /* 特色按鈕：[按鈕文字, 標題裡出現哪些字就算符合, 顯示在哪些類型]
    類型：s＝套房、h＝整層住家（店面、辦公不顯示特色；「全部」＝套房＋住家的都列）
    ※ 只比對「標題」，不看內文 */
 const KEYWORDS = [
+  ['屋主優惠', /首月半價|免仲介/,       'sh'],   // 首月半價、免仲介費
   ['陽台獨洗', /陽台獨洗/,              's'],
   ['獨洗獨曬', /獨洗獨曬/,              's'],
   ['獨洗脫烘', /獨洗脫烘|獨立洗脫烘/,   's'],
@@ -338,12 +336,6 @@ $('info').onclick = e => {
   render();
 };
 
-function median(arr){
-  if (!arr.length) return null;
-  const s = [...arr].sort((a,b)=>a-b), m = s.length >> 1;
-  return s.length % 2 ? s[m] : Math.round((s[m-1] + s[m]) / 2);
-}
-
 function render(){
   if (!ALL.length) return;
   const q = $('q').value.trim();
@@ -363,20 +355,17 @@ function render(){
   const s = $('sort').value;
   list.sort((a,b) => s==='low' ? a.rent-b.rent : s==='high' ? b.rent-a.rent : a._ord-b._ord);
 
-  const med = median(list.map(o => o.rent));
-  $('sN').textContent = `${list.length} 間`;
-  $('sMed').textContent = med == null ? '–' : `$${fmt(med)}`;
 
   const rentOn = rentPreset !== 0;
   const rentLbl = rentPreset > 0 ? RENTS[rentPreset][0] : `${lo?fmt(lo):'0'} – ${hi<1e9?fmt(hi):'不限'}`;
   $('bArea').classList.toggle('act', selAreas.size > 0);
-  $('bArea').textContent = selAreas.size ? `區域（${selAreas.size}）` : '區域';
+  $('bArea').textContent = selAreas.size ? `區域(${selAreas.size})` : '區域';
   $('bRent').classList.toggle('act', rentOn);
   $('bRent').textContent = rentOn ? `租金 ${rentLbl}` : '租金';
   $('bKw').classList.toggle('act', selKw.size > 0);
-  $('bKw').textContent = selKw.size ? `特色（${selKw.size}）` : '特色';
+  $('bKw').textContent = selKw.size ? `特色(${selKw.size})` : '特色';
 
-  $('info').innerHTML =
+  $('info').innerHTML = `<b class="cnt">找到 ${list.length} 間</b>` +
     (q ? `<span class="tag" data-q="1">「${esc(q)}」</span>` : '') +
     [...selAreas].map(a => `<span class="tag" data-a="${a}">${a}</span>`).join('') +
     (rentOn ? `<span class="tag" data-r="1">${rentLbl}</span>` : '') +
