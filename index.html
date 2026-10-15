@@ -70,7 +70,12 @@ button.dd::after{content:"▾";font-size:11px;opacity:.6}
 .list{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .item{display:flex;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;text-decoration:none;min-height:130px}
 .item:hover{border-color:var(--br2)}
-.ph{width:42%;max-width:200px;flex-shrink:0;background:var(--cr2) center/cover no-repeat}
+.ph{width:42%;max-width:200px;flex-shrink:0;background:var(--cr2) center/cover no-repeat;position:relative}
+.fav{position:absolute;top:6px;left:6px;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.92);display:flex;align-items:center;justify-content:center;font-size:18px;color:#b4a99c;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.fav.on{color:#e11d48}
+.favBtn{background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:8px;padding:8px 12px;font-weight:700;font-size:14px;cursor:pointer;white-space:nowrap}
+.favBtn.on{background:#fff;color:#e11d48}
+.brand .acts{display:flex;gap:8px}
 .ib{padding:10px 12px;display:flex;flex-direction:column;gap:4px;min-width:0;flex:1}
 .ar{font-size:12px;color:var(--ac);font-weight:700}
 .ti{font-size:15px;font-weight:700;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
@@ -95,7 +100,7 @@ button.dd::after{content:"▾";font-size:11px;opacity:.6}
 <section class="hero"><div class="hero-in">
   <div class="brand">
     <h1>WOW 台中租屋<span>代租代管物件總覽</span></h1>
-    <a class="line" id="lineBtn" target="_blank" rel="noopener">LINE 詢問</a>
+    <span class="acts"><button class="favBtn" id="favBtn">♥ 收藏 <span id="favN">0</span></button><a class="line" id="lineBtn" target="_blank" rel="noopener">LINE 詢問</a></span>
   </div>
   <div class="sbox"><input type="search" id="q" placeholder="輸入路名、關鍵字，例如：進化路、一中"></div>
   <div class="sub" id="stat">物件讀取中…</div>
@@ -147,7 +152,7 @@ button.dd::after{content:"▾";font-size:11px;opacity:.6}
 /* ===== 設定（只要改這裡）===== */
 const LANDLORD_ID = 'ualjjinlhrglzm69';            // 租租通「WOW台中租屋小幫手」
 const LINE_URL    = 'https://line.me/ti/p/4Kk6A8hKbV';
-const VERSION     = 'v1.4.0';
+const VERSION     = 'v1.5.0';
 /* 特色按鈕：[按鈕文字, 標題裡出現哪些字就算符合, 顯示在哪些類型]
    類型：s＝套房、h＝整層住家（店面、辦公不顯示特色；「全部」＝套房＋住家的都列）
    ※ 只比對「標題」，不看內文 */
@@ -208,6 +213,18 @@ const fmt = n => Number(n).toLocaleString();
 const typeOf = o => o.category === 'house' ? (o.type_space_name === '整層' ? 'home' : 'studio') : (o.category === 'office' ? 'office' : 'shop');
 
 $('lineBtn').href = LINE_URL;
+
+/* 收藏：存在客人自己的瀏覽器（換手機/清除瀏覽資料會不見） */
+let favs = []; try { favs = JSON.parse(localStorage.getItem('wow_favs') || '[]'); } catch(e){}
+let favMode = false;
+function saveFavs(){ try { localStorage.setItem('wow_favs', JSON.stringify(favs)); } catch(e){} }
+$('favBtn').onclick = () => { favMode = !favMode; document.querySelectorAll('.panel').forEach(x => x.classList.remove('open')); render(); window.scrollTo({top: $('list').offsetTop - 160, behavior:'smooth'}); };
+$('list').addEventListener('click', e => {
+  const h = e.target.closest('.fav'); if (!h) return;
+  e.preventDefault(); e.stopPropagation();
+  const id = h.dataset.id, i = favs.indexOf(id);
+  i >= 0 ? favs.splice(i, 1) : favs.push(id); saveFavs(); render();
+});
 $('ver').textContent = VERSION;
 $('kwNote').textContent = '※ ' + KW_NOTE;
 
@@ -230,8 +247,17 @@ async function getPage(p){
   }
   throw new Error('page ' + p);
 }
+/* 精選：讀 featured.json（後台 admin.html 存的），精選物件一律排最前面，不另外標示 */
+let FEAT = new Map();
+async function loadFeatured(){
+  try{
+    const r = await fetch('featured.json?t=' + Date.now(), {cache:'no-store'});
+    if (r.ok){ const j = await r.json(); (j.ids || []).forEach((id,i) => FEAT.set(id, i)); }
+  }catch(e){}
+}
 async function load(){
   try{
+    const featP = loadFeatured();
     const first = await getPage(1);
     const pages = [first];
     const todo = []; for (let p = 2; p <= first.last_page; p++) todo.push(p);
@@ -247,6 +273,7 @@ async function load(){
       o._kw = KEYWORDS.map(k => kwTest(k, o.title));
       ALL.push(o);
     }));
+    await featP;
     const d = new Date();
     $('stat').textContent = `目前 ${ALL.length} 間刊登中｜資料更新 ${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}（即時同步租租通）`;
     render();
@@ -318,7 +345,7 @@ $('clrKw').onclick = () => { selKw.clear(); render(); };
 $('clrAll').onclick = () => {
   selType = ''; [...$('types').children].forEach(x => x.classList.toggle('on', x.dataset.t === ''));
   RENTS = RENT_SETS['']; rentPreset = 0; $('minR').value=''; $('maxR').value=''; buildRent();
-  selAreas.clear(); selKw.clear(); $('q').value = '';
+  selAreas.clear(); selKw.clear(); $('q').value = ''; favMode = false;
   $('bKw').style.display = '';
   document.querySelectorAll('.panel').forEach(x => x.classList.remove('open'));
   render();
@@ -333,6 +360,7 @@ $('info').onclick = e => {
   if (t.dataset.k) selKw.delete(+t.dataset.k);
   if (t.dataset.r) { rentPreset = 0; $('minR').value=''; $('maxR').value=''; buildRent(); }
   if (t.dataset.q) $('q').value = '';
+  if (t.dataset.fav) favMode = false;
   render();
 };
 
@@ -351,9 +379,18 @@ function render(){
   buildAreas(ALL.filter(o => okQ(o) && okT(o) && okR(o) && okK(o)));
   buildKw(ALL.filter(o => okQ(o) && okT(o) && okR(o) && okA(o) && okK(o)));
 
-  let list = ALL.filter(o => okQ(o) && okT(o) && okR(o) && okA(o) && okK(o));
+  const live = new Set(ALL.map(o => o.object_id));
+  const favLive = favs.filter(id => live.has(id));
+  $('favN').textContent = favLive.length; $('favBtn').classList.toggle('on', favMode);
+  let list = favMode ? ALL.filter(o => favs.includes(o.object_id))      // 收藏模式：只看收藏，不套其他條件
+                    : ALL.filter(o => okQ(o) && okT(o) && okR(o) && okA(o) && okK(o));
   const s = $('sort').value;
-  list.sort((a,b) => s==='low' ? a.rent-b.rent : s==='high' ? b.rent-a.rent : a._ord-b._ord);
+  list.sort((a,b) => {
+    const fa = FEAT.has(a.object_id), fb = FEAT.has(b.object_id);
+    if (fa !== fb) return fa ? -1 : 1;                       // 精選在前
+    if (fa && fb && s === 'new') return FEAT.get(a.object_id) - FEAT.get(b.object_id);  // 精選照後台順序
+    return s==='low' ? a.rent-b.rent : s==='high' ? b.rent-a.rent : a._ord-b._ord;
+  });
 
 
   const rentOn = rentPreset !== 0;
@@ -365,18 +402,21 @@ function render(){
   $('bKw').classList.toggle('act', selKw.size > 0);
   $('bKw').textContent = selKw.size ? `特色(${selKw.size})` : '特色';
 
+  if (favMode){ $('info').innerHTML = `<b class="cnt">我的收藏 ${list.length} 間</b><span class="tag" data-fav="1">離開收藏</span>`;
+    $('msg').textContent = list.length ? '' : '還沒有收藏，點物件照片左上角的 ♥ 就能收藏。'; }
+  else
   $('info').innerHTML = `<b class="cnt">找到 ${list.length} 間</b>` +
     (q ? `<span class="tag" data-q="1">「${esc(q)}」</span>` : '') +
     [...selAreas].map(a => `<span class="tag" data-a="${a}">${a}</span>`).join('') +
     (rentOn ? `<span class="tag" data-r="1">${rentLbl}</span>` : '') +
     [...selKw].map(i => `<span class="tag" data-k="${i}">${KEYWORDS[i][0]}</span>`).join('');
 
-  $('msg').textContent = list.length ? '' : '沒有符合的物件，試試放寬條件，或加 LINE 告訴我們需求。';
+  if (!favMode) $('msg').textContent = list.length ? '' : '沒有符合的物件，試試放寬條件，或加 LINE 告訴我們需求。';
   $('list').innerHTML = list.map(o => {
     const img = o.covers?.[0]?.image?.sm || '';
     const meta = [o.type_space_name || o.category_name, o.ping ? o.ping + '坪' : '', o.floor ? o.floor + 'F' : ''].filter(Boolean).join(' · ');
     return `<a class="item" href="https://www.dd-room.com/object/${esc(o.object_id)}" target="_blank" rel="noopener">
-      <div class="ph" style="background-image:url('${esc(img)}')" role="img" aria-label="${esc(o.title)}"></div>
+      <div class="ph" style="background-image:url('${esc(img)}')" role="img" aria-label="${esc(o.title)}"><span class="fav${favs.includes(o.object_id)?' on':''}" data-id="${esc(o.object_id)}" role="button" aria-label="收藏">♥</span></div>
       <div class="ib">
         <div class="ar">${esc(o.address.area)}・${TYPES[o._type]}</div>
         <div class="ti">${esc(o.title)}</div>

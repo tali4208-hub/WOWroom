@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>WOW 精選後台</title>
+<style>
+:root{--br:#5b4636;--cr:#f5efe6;--cr2:#ece3d6;--card:#fffdf9;--tx:#2b231c;--mut:#8a7a6b;--ac:#2f7d6d;--line:#e2d7c8;--gold:#d97706}
+*{box-sizing:border-box}
+body{margin:0;background:var(--cr);color:var(--tx);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft JhengHei","PingFang TC",sans-serif;font-size:15px}
+header{background:var(--br);color:#fff;padding:14px 16px;position:sticky;top:0;z-index:5}
+.hin{max-width:900px;margin:0 auto;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+header h1{font-size:18px;margin:0;flex:1}
+.btn{border:0;border-radius:8px;padding:9px 16px;font-size:14px;cursor:pointer;font-weight:700;background:var(--ac);color:#fff}
+.btn:disabled{opacity:.5;cursor:default}
+.btn.gh{background:#fff;color:var(--tx);font-weight:400}
+.wrap{max-width:900px;margin:0 auto;padding:14px 16px 60px}
+.box{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
+.box h3{margin:0 0 8px;font-size:15px}
+.box p{margin:6px 0;font-size:13px;color:var(--mut);line-height:1.6}
+input[type=text],input[type=password],input[type=search]{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;font-size:15px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.tabs{display:flex;gap:6px;margin:10px 0}
+.tab{border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 14px;cursor:pointer;font-size:14px}
+.tab.on{background:var(--br);color:#fff;border-color:var(--br)}
+.it{display:flex;gap:10px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px;margin-bottom:8px}
+.it.f{border-color:var(--gold);background:#fffbeb}
+.star{font-size:26px;cursor:pointer;user-select:none;width:36px;text-align:center;color:#d6cfc5;flex-shrink:0}
+.it.f .star{color:var(--gold)}
+.th{width:72px;height:50px;border-radius:6px;background:var(--cr2) center/cover;flex-shrink:0}
+.inf{flex:1;min-width:0}
+.ti{font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mt{font-size:12px;color:var(--mut)}
+.mv{display:flex;flex-direction:column;gap:2px}
+.mv button{border:1px solid var(--line);background:#fff;border-radius:4px;cursor:pointer;font-size:11px;padding:1px 6px}
+.msg{font-size:13px;margin-left:4px}
+.ok{color:var(--ac)}.err{color:#b91c1c}
+header .ok{color:#c8f2e6}header .err{color:#fecaca}
+a{color:var(--ac)}
+</style>
+</head>
+<body>
+<header><div class="hin">
+  <h1>⭐ 精選後台 <small style="font-weight:400;opacity:.7" id="ver"></small></h1>
+  <span class="msg" id="smsg"></span>
+  <button class="btn" id="save" disabled>儲存（0）</button>
+</div></header>
+
+<div class="wrap">
+  <div class="box" id="setup" style="display:none">
+    <h3>第一次使用：貼上 GitHub 金鑰</h3>
+    <p>金鑰只存在這台電腦／手機的瀏覽器裡，不會放進網站。換裝置要再貼一次。產生方式見「使用說明」。</p>
+    <div class="row"><input type="password" id="tok" placeholder="github_pat_…"><button class="btn" id="tokSave">儲存金鑰</button></div>
+  </div>
+
+  <div class="box">
+    <div class="row">
+      <input type="search" id="q" placeholder="搜尋標題 / 地址" style="flex:1">
+    </div>
+    <div class="tabs">
+      <span class="tab on" data-v="all">全部物件</span>
+      <span class="tab" data-v="f">已精選 <b id="fN">0</b></span>
+    </div>
+    <p>點 ☆ 變 ⭐ 就是精選；租客頁面精選物件會排在最上面（不會標示）。「已精選」裡可以用 ▲▼ 調整順序。改完記得按右上角「儲存」，約 1 分鐘後網站生效。</p>
+    <p id="gone"></p>
+  </div>
+
+  <div id="list"><p class="mt">物件讀取中…</p></div>
+  <p class="mt" style="text-align:center;margin-top:20px"><a id="tokReset" href="#">更換金鑰</a></p>
+</div>
+
+<script>
+/* ===== 設定 ===== */
+const LANDLORD_ID = 'ualjjinlhrglzm69';
+const REPO        = 'tali4208-hub/WOWroom';   // GitHub 帳號/專案
+const FILE        = 'featured.json';
+const VERSION     = 'v1.5.0';
+/* =============== */
+const API = p => `https://api.dd-room.com/api/v1/landlord/objects/${LANDLORD_ID}?category=&page=${p}&per_page=20&order=sort_at&sort=desc`;
+const GH  = `https://api.github.com/repos/${REPO}/contents/${FILE}`;
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = n => Number(n).toLocaleString();
+const LS = { get(k){ try{ return localStorage.getItem(k) }catch(e){ return null } }, set(k,v){ try{ localStorage.setItem(k,v) }catch(e){} }, del(k){ try{ localStorage.removeItem(k) }catch(e){} } };
+
+let ALL = [], feat = [], saved = '[]', sha = null, view = 'all';
+$('ver').textContent = VERSION;
+
+function token(){ return LS.get('wow_gh_token') }
+function showSetup(){ $('setup').style.display = token() ? 'none' : 'block' }
+$('tokSave').onclick = () => { const t = $('tok').value.trim(); if (!t) return; LS.set('wow_gh_token', t); $('tok').value=''; showSetup(); loadFeatured(); };
+$('tokReset').onclick = e => { e.preventDefault(); LS.del('wow_gh_token'); showSetup(); };
+showSetup();
+
+async function getPage(p){
+  for (let t = 0; t < 5; t++){
+    try { const r = await fetch(API(p)); if (r.ok) return (await r.json()).data; } catch(e){}
+    await new Promise(r => setTimeout(r, 700 * (t + 1)));
+  }
+  throw new Error('page ' + p);
+}
+async function loadListings(){
+  const first = await getPage(1); const pages = [first];
+  const todo = []; for (let p = 2; p <= first.last_page; p++) todo.push(p);
+  const w = async () => { while (todo.length){ const p = todo.shift(); pages[p-1] = await getPage(p); } };
+  await Promise.all([w(), w(), w(), w()]);
+  const seen = new Set();
+  pages.forEach(pg => pg.items.forEach(o => {
+    if (seen.has(o.object_id) || o.address?.city !== '臺中市') return; seen.add(o.object_id);
+    o._text = (o.title + ' ' + (o.address?.complete || '')).toLowerCase(); ALL.push(o);
+  }));
+}
+const b64dec = s => decodeURIComponent(escape(atob(s.replace(/\n/g,''))));
+const b64enc = s => btoa(unescape(encodeURIComponent(s)));
+
+async function loadFeatured(){
+  // 有金鑰：從 GitHub 讀（拿得到 sha 才能存）；沒金鑰：讀網站上的檔案
+  try{
+    if (token()){
+      const r = await fetch(GH + '?t=' + Date.now(), {headers:{Authorization:'Bearer ' + token(), Accept:'application/vnd.github+json'}});
+      if (r.status === 404){ sha = null; feat = []; }
+      else if (r.status === 401 || r.status === 403){ setMsg('金鑰無效或權限不足，請按最下面「更換金鑰」重貼', true); return; }
+      else { const j = await r.json(); sha = j.sha; feat = JSON.parse(b64dec(j.content)).ids || []; }
+    } else {
+      const r = await fetch(FILE + '?t=' + Date.now(), {cache:'no-store'});
+      feat = r.ok ? ((await r.json()).ids || []) : [];
+    }
+  }catch(e){ setMsg('精選清單讀取失敗', true); }
+  saved = JSON.stringify(feat); render();
+}
+
+function setMsg(t, err){ $('smsg').textContent = t; $('smsg').className = 'msg ' + (err ? 'err' : 'ok'); }
+
+document.querySelector('.tabs').onclick = e => {
+  const t = e.target.closest('.tab'); if (!t) return; view = t.dataset.v;
+  document.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x === t)); render();
+};
+$('q').oninput = render;
+
+$('list').onclick = e => {
+  const st = e.target.closest('.star'), mv = e.target.closest('[data-mv]');
+  if (st){ const id = st.dataset.id, i = feat.indexOf(id); i >= 0 ? feat.splice(i,1) : feat.push(id); render(); }
+  if (mv){ const id = mv.dataset.id, i = feat.indexOf(id), j = i + (+mv.dataset.mv);
+    if (j >= 0 && j < feat.length){ [feat[i], feat[j]] = [feat[j], feat[i]]; render(); } }
+};
+
+function render(){
+  if (!ALL.length) return;
+  const live = new Set(ALL.map(o => o.object_id));
+  const gone = feat.filter(id => !live.has(id));
+  $('gone').textContent = gone.length ? `有 ${gone.length} 間精選物件已不在刊登中，儲存時會自動移除。` : '';
+  const dirty = JSON.stringify(feat) !== saved;
+  $('save').disabled = !dirty || !token();
+  $('save').textContent = `儲存（${feat.filter(id => live.has(id)).length}）`;
+  if (dirty) setMsg('有未儲存的變更');
+  $('fN').textContent = feat.filter(id => live.has(id)).length;
+
+  const words = $('q').value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const byId = new Map(ALL.map(o => [o.object_id, o]));
+  let list = view === 'f' ? feat.map(id => byId.get(id)).filter(Boolean) : ALL;
+  list = list.filter(o => words.every(w => o._text.includes(w)));
+  $('list').innerHTML = list.length ? list.map(o => {
+    const f = feat.includes(o.object_id);
+    return `<div class="it${f?' f':''}">
+      <span class="star" data-id="${o.object_id}">${f?'⭐':'☆'}</span>
+      <div class="th" style="background-image:url('${esc(o.covers?.[0]?.image?.xs || '')}')"></div>
+      <div class="inf"><div class="ti">${esc(o.title)}</div>
+        <div class="mt">${esc(o.address.area)}・$${fmt(o.rent)}・<a href="https://www.dd-room.com/object/${o.object_id}" target="_blank" rel="noopener">看物件</a></div></div>
+      ${view==='f' ? `<div class="mv"><button data-mv="-1" data-id="${o.object_id}">▲</button><button data-mv="1" data-id="${o.object_id}">▼</button></div>` : ''}
+    </div>`;
+  }).join('') : '<p class="mt">沒有符合的物件</p>';
+}
+
+$('save').onclick = async () => {
+  const live = new Set(ALL.map(o => o.object_id));
+  const ids = feat.filter(id => live.has(id));
+  const d = new Date();
+  const body = JSON.stringify({updated: d.toISOString(), ids}, null, 1);
+  $('save').disabled = true; setMsg('儲存中…');
+  try{
+    const r = await fetch(GH, {method:'PUT', headers:{Authorization:'Bearer ' + token(), Accept:'application/vnd.github+json'},
+      body: JSON.stringify({message:`更新精選（${ids.length} 間）`, content: b64enc(body), ...(sha ? {sha} : {})})});
+    if (!r.ok){ const t = await r.text(); throw new Error(r.status + ' ' + t.slice(0,120)); }
+    const j = await r.json(); sha = j.content.sha; feat = ids; saved = JSON.stringify(feat);
+    setMsg(`已儲存 ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}，約 1 分鐘後網站生效`);
+    render(); setMsg(`已儲存 ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}，約 1 分鐘後網站生效`);
+  }catch(e){
+    setMsg('儲存失敗：' + (String(e.message).startsWith('409') ? '清單在別處被改過，請重新整理頁面再試' : e.message), true);
+    $('save').disabled = false;
+  }
+};
+
+(async () => {
+  try { await loadListings(); } catch(e){ $('list').innerHTML = '<p class="err">租租通物件讀取失敗，請重新整理</p>'; return; }
+  await loadFeatured();
+})();
+</script>
+</body>
+</html>
