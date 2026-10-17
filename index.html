@@ -104,6 +104,7 @@ button.dd::after{content:"▾";font-size:11px;opacity:.6}
   </div>
   <div class="sbox"><input type="search" id="q" placeholder="輸入路名、關鍵字，例如：進化路、一中"></div>
   <div class="sub" id="stat">物件讀取中…</div>
+  <div class="sub" id="views"></div>
 </div></section>
 
 <div class="bar">
@@ -139,7 +140,7 @@ button.dd::after{content:"▾";font-size:11px;opacity:.6}
 
 <main class="wrap">
   <div class="rowi"><div class="info" id="info"></div><select class="dd" id="sort">
-      <option value="new">最新刊登</option>
+      <option value="new">推薦</option>
       <option value="low">租金 低→高</option>
       <option value="high">租金 高→低</option>
     </select></div>
@@ -152,7 +153,11 @@ button.dd::after{content:"▾";font-size:11px;opacity:.6}
 /* ===== 設定（只要改這裡）===== */
 const LANDLORD_ID = 'ualjjinlhrglzm69';            // 租租通「WOW台中租屋小幫手」
 const LINE_URL    = 'https://line.me/ti/p/4Kk6A8hKbV';
-const VERSION     = 'v1.5.0';
+const VERSION     = 'v1.6.0';
+/* 瀏覽人次：用免費計數服務 abacus（不用註冊），顯示＝起始值＋實際次數；同一個瀏覽器分頁只算一次 */
+const COUNTER_START = 1500;
+const COUNTER_URL   = 'https://abacus.jasoncameron.dev';
+const COUNTER_KEY   = 'wowroom-tali4208/visits';
 /* 特色按鈕：[按鈕文字, 標題裡出現哪些字就算符合, 顯示在哪些類型]
    類型：s＝套房、h＝整層住家（店面、辦公不顯示特色；「全部」＝套房＋住家的都列）
    ※ 只比對「標題」，不看內文 */
@@ -249,6 +254,28 @@ async function getPage(p){
 }
 /* 精選：讀 featured.json（後台 admin.html 存的），精選物件一律排最前面，不另外標示 */
 let FEAT = new Map();
+/* 瀏覽人次（排除：開過後台 admin.html 的裝置、後台設定的 IP） */
+async function countVisit(){
+  try{
+    let owner = false; try { owner = localStorage.getItem('wow_owner') === '1'; } catch(e){}
+    let counted = false; try { counted = sessionStorage.getItem('wow_counted') === '1'; } catch(e){}
+    if (!owner && !counted){
+      let ips = [];
+      try { const r = await fetch('settings.json?t=' + Date.now(), {cache:'no-store'}); if (r.ok) ips = (await r.json()).excludeIps || []; } catch(e){}
+      if (ips.length){
+        try { const r = await fetch('https://api.ipify.org?format=json'); if (r.ok && ips.includes((await r.json()).ip)) owner = true; } catch(e){}
+      }
+    }
+    const act = (!owner && !counted) ? 'hit' : 'get';
+    const r = await fetch(`${COUNTER_URL}/${act}/${COUNTER_KEY}`);
+    if (!r.ok) return;
+    const v = (await r.json()).value || 0;
+    if (act === 'hit') { try { sessionStorage.setItem('wow_counted','1'); } catch(e){} }
+    $('views').textContent = `累計瀏覽 ${(COUNTER_START + v).toLocaleString()} 人次`;
+  }catch(e){}
+}
+countVisit();
+
 async function loadFeatured(){
   try{
     const r = await fetch('featured.json?t=' + Date.now(), {cache:'no-store'});
@@ -267,7 +294,7 @@ async function load(){
     pages.forEach((pg, i) => pg.items.forEach((o, j) => {
       if (seen.has(o.object_id)) return; seen.add(o.object_id);
       if (o.address?.city !== '臺中市') return;               // 外縣市不列入
-      o._ord = i * 100 + j;
+      o._ord = Math.random();                                   // 每次打開網頁隨機排序
       o._text = (o.title + ' ' + (o.address?.complete || '') + ' ' + (o.type_space_name || '') + ' ' + (o.category_name || '')).toLowerCase();
       o._type = typeOf(o);
       o._kw = KEYWORDS.map(k => kwTest(k, o.title));
@@ -389,7 +416,7 @@ function render(){
     const fa = FEAT.has(a.object_id), fb = FEAT.has(b.object_id);
     if (fa !== fb) return fa ? -1 : 1;                       // 精選在前
     if (fa && fb && s === 'new') return FEAT.get(a.object_id) - FEAT.get(b.object_id);  // 精選照後台順序
-    return s==='low' ? a.rent-b.rent : s==='high' ? b.rent-a.rent : a._ord-b._ord;
+    return s==='low' ? a.rent-b.rent : s==='high' ? b.rent-a.rent : a._ord-b._ord;       // 推薦＝隨機
   });
 
 

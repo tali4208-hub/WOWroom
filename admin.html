@@ -66,6 +66,14 @@ a{color:var(--ac)}
     <p id="gone"></p>
   </div>
 
+  <div class="box">
+    <h3>📊 瀏覽人次：<span id="vN">–</span></h3>
+    <p>這台裝置開過後台，就不會被算進瀏覽人次。下面的 IP 也不會被計算（例如公司、家裡的網路）。</p>
+    <p>你現在的 IP：<b id="myIp">讀取中…</b>　<button class="btn gh" id="ipAdd" style="padding:5px 10px;border:1px solid var(--line)">排除這個 IP</button></p>
+    <div id="ipList" class="mt"></div>
+    <p id="ipMsg" class="msg"></p>
+  </div>
+
   <div id="list"><p class="mt">物件讀取中…</p></div>
   <p class="mt" style="text-align:center;margin-top:20px"><a id="tokReset" href="#">更換金鑰</a></p>
 </div>
@@ -75,7 +83,10 @@ a{color:var(--ac)}
 const LANDLORD_ID = 'ualjjinlhrglzm69';
 const REPO        = 'tali4208-hub/WOWroom';   // GitHub 帳號/專案
 const FILE        = 'featured.json';
-const VERSION     = 'v1.5.0';
+const VERSION     = 'v1.6.0';
+const COUNTER_START = 1500;
+const COUNTER_URL   = 'https://abacus.jasoncameron.dev';
+const COUNTER_KEY   = 'wowroom-tali4208/visits';
 /* =============== */
 const API = p => `https://api.dd-room.com/api/v1/landlord/objects/${LANDLORD_ID}?category=&page=${p}&per_page=20&order=sort_at&sort=desc`;
 const GH  = `https://api.github.com/repos/${REPO}/contents/${FILE}`;
@@ -86,10 +97,11 @@ const LS = { get(k){ try{ return localStorage.getItem(k) }catch(e){ return null 
 
 let ALL = [], feat = [], saved = '[]', sha = null, view = 'all';
 $('ver').textContent = VERSION;
+LS.set('wow_owner', '1');   // 開過後台的裝置＝自己人，租客頁面不計瀏覽人次
 
 function token(){ return LS.get('wow_gh_token') }
 function showSetup(){ $('setup').style.display = token() ? 'none' : 'block' }
-$('tokSave').onclick = () => { const t = $('tok').value.trim(); if (!t) return; LS.set('wow_gh_token', t); $('tok').value=''; showSetup(); loadFeatured(); };
+$('tokSave').onclick = () => { const t = $('tok').value.trim(); if (!t) return; LS.set('wow_gh_token', t); $('tok').value=''; showSetup(); loadFeatured(); loadSettings(); };
 $('tokReset').onclick = e => { e.preventDefault(); LS.del('wow_gh_token'); showSetup(); };
 showSetup();
 
@@ -190,6 +202,46 @@ $('save').onclick = async () => {
     $('save').disabled = false;
   }
 };
+
+/* ===== 瀏覽人次與排除 IP（存在 settings.json） ===== */
+const GHS = `https://api.github.com/repos/${REPO}/contents/settings.json`;
+let ips = [], ssha = null, myIp = '';
+async function loadSettings(){
+  try{
+    if (token()){
+      const r = await fetch(GHS + '?t=' + Date.now(), {headers:{Authorization:'Bearer ' + token(), Accept:'application/vnd.github+json'}});
+      if (r.ok){ const j = await r.json(); ssha = j.sha; ips = JSON.parse(b64dec(j.content)).excludeIps || []; }
+    } else {
+      const r = await fetch('settings.json?t=' + Date.now(), {cache:'no-store'}); if (r.ok) ips = (await r.json()).excludeIps || [];
+    }
+  }catch(e){}
+  renderIps();
+}
+function renderIps(){
+  $('ipList').innerHTML = ips.length ? '已排除：' + ips.map(ip => `<span style="display:inline-block;background:var(--cr2);border-radius:6px;padding:2px 8px;margin:2px">${esc(ip)} <a href="#" data-ip="${esc(ip)}">移除</a></span>`).join('') : '目前沒有排除任何 IP';
+  $('ipAdd').disabled = !myIp || ips.includes(myIp) || !token();
+  $('ipAdd').textContent = ips.includes(myIp) ? '這個 IP 已排除' : '排除這個 IP';
+}
+async function saveSettings(){
+  $('ipMsg').textContent = '儲存中…'; $('ipMsg').className = 'msg';
+  try{
+    const body = JSON.stringify({excludeIps: ips}, null, 1);
+    const r = await fetch(GHS, {method:'PUT', headers:{Authorization:'Bearer ' + token(), Accept:'application/vnd.github+json'},
+      body: JSON.stringify({message:'更新排除 IP', content: b64enc(body), ...(ssha ? {sha: ssha} : {})})});
+    if (!r.ok) throw new Error(r.status);
+    ssha = (await r.json()).content.sha;
+    $('ipMsg').textContent = '已儲存，約 1 分鐘後生效'; $('ipMsg').className = 'msg ok';
+  }catch(e){ $('ipMsg').textContent = '儲存失敗（' + e.message + '），請重新整理再試'; $('ipMsg').className = 'msg err'; }
+  renderIps();
+}
+$('ipAdd').onclick = () => { if (myIp && !ips.includes(myIp)){ ips.push(myIp); saveSettings(); } };
+$('ipList').onclick = e => { const a = e.target.closest('[data-ip]'); if (!a) return; e.preventDefault(); ips = ips.filter(x => x !== a.dataset.ip); saveSettings(); };
+(async () => {
+  try { const r = await fetch(`${COUNTER_URL}/get/${COUNTER_KEY}`); $('vN').textContent = (COUNTER_START + (r.ok ? ((await r.json()).value || 0) : 0)).toLocaleString(); } catch(e){ $('vN').textContent = COUNTER_START.toLocaleString(); }
+  try { const r = await fetch('https://api.ipify.org?format=json'); myIp = (await r.json()).ip; } catch(e){}
+  $('myIp').textContent = myIp || '讀不到';
+  loadSettings();
+})();
 
 (async () => {
   try { await loadListings(); } catch(e){ $('list').innerHTML = '<p class="err">租租通物件讀取失敗，請重新整理</p>'; return; }
