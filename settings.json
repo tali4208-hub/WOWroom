@@ -1,5 +1,3 @@
 {
- "excludeIps": [
-  "36.233.210.136"
- ]
+ "excludeIps": []
 }
