@@ -1,5 +1,6 @@
 {
- "updated": "2026-10-16T12:57:21.614Z",
+ "updated": "2026-10-19T09:16:11.013Z",
+ "top": 4,
  "ids": [
   "gt4x2xioier3oftw",
   "ljzzltlfysqowuog",
@@ -8,5 +9,14 @@
   "zu6t1ktobk6w0v78",
   "srzc0pdoemg6kaqr",
   "asmxjvev7vhfc4ai"
- ]
+ ],
+ "weights": {
+  "gt4x2xioier3oftw": 5,
+  "ljzzltlfysqowuog": 3,
+  "2gyqqvkurj6o20ua": 4,
+  "kptgtlyek5hhtyy6": 1,
+  "zu6t1ktobk6w0v78": 3,
+  "srzc0pdoemg6kaqr": 3,
+  "asmxjvev7vhfc4ai": 4
+ }
 }
