@@ -153,7 +153,7 @@ button.dd::after{content:"▾";font-size:11px;opacity:.6}
 /* ===== 設定（只要改這裡）===== */
 const LANDLORD_ID = 'ualjjinlhrglzm69';            // 租租通「WOW台中租屋小幫手」
 const LINE_URL    = 'https://line.me/ti/p/4Kk6A8hKbV';
-const VERSION     = 'v1.6.0';
+const VERSION     = 'v1.7.0';
 /* 瀏覽人次：用免費計數服務 abacus（不用註冊），顯示＝起始值＋實際次數；同一個瀏覽器分頁只算一次 */
 const COUNTER_START = 1500;
 const COUNTER_URL   = 'https://abacus.jasoncameron.dev';
@@ -252,8 +252,10 @@ async function getPage(p){
   }
   throw new Error('page ' + p);
 }
-/* 精選：讀 featured.json（後台 admin.html 存的），精選物件一律排最前面，不另外標示 */
-let FEAT = new Map();
+/* 精選：讀 featured.json（後台 admin.html 存的）。
+   「推薦」排序：前 FEAT_TOP 間從精選裡依權重隨機抽，之後全部物件（含沒抽到的精選）隨機；不另外標示 */
+let FEAT = new Map();      // id → 權重
+let FEAT_TOP = 4;
 /* 瀏覽人次（排除：開過後台 admin.html 的裝置、後台設定的 IP） */
 async function countVisit(){
   try{
@@ -279,7 +281,11 @@ countVisit();
 async function loadFeatured(){
   try{
     const r = await fetch('featured.json?t=' + Date.now(), {cache:'no-store'});
-    if (r.ok){ const j = await r.json(); (j.ids || []).forEach((id,i) => FEAT.set(id, i)); }
+    if (r.ok){
+      const j = await r.json(), w = j.weights || {};
+      (j.ids || []).forEach(id => FEAT.set(id, Math.max(1, +w[id] || 3)));
+      if (Number.isFinite(+j.top)) FEAT_TOP = Math.max(0, +j.top);
+    }
   }catch(e){}
 }
 async function load(){
@@ -301,6 +307,8 @@ async function load(){
       ALL.push(o);
     }));
     await featP;
+    // 精選抽籤：權重越高越容易排進前幾間（每次打開網頁抽一次，篩選時順序不跳動）
+    ALL.forEach(o => { const w = FEAT.get(o.object_id); o._fk = w ? Math.pow(Math.random(), 1 / w) : -1; });
     const d = new Date();
     $('stat').textContent = `目前 ${ALL.length} 間刊登中｜資料更新 ${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}（即時同步租租通）`;
     render();
@@ -412,12 +420,14 @@ function render(){
   let list = favMode ? ALL.filter(o => favs.includes(o.object_id))      // 收藏模式：只看收藏，不套其他條件
                     : ALL.filter(o => okQ(o) && okT(o) && okR(o) && okA(o) && okK(o));
   const s = $('sort').value;
-  list.sort((a,b) => {
-    const fa = FEAT.has(a.object_id), fb = FEAT.has(b.object_id);
-    if (fa !== fb) return fa ? -1 : 1;                       // 精選在前
-    if (fa && fb && s === 'new') return FEAT.get(a.object_id) - FEAT.get(b.object_id);  // 精選照後台順序
-    return s==='low' ? a.rent-b.rent : s==='high' ? b.rent-a.rent : a._ord-b._ord;       // 推薦＝隨機
-  });
+  if (s === 'new'){
+    // 推薦：前 FEAT_TOP 間＝精選依權重隨機抽；之後＝其餘全部隨機
+    const top = list.filter(o => o._fk >= 0).sort((a,b) => b._fk - a._fk).slice(0, FEAT_TOP);
+    const topSet = new Set(top);
+    list = top.concat(list.filter(o => !topSet.has(o)).sort((a,b) => a._ord - b._ord));
+  } else {
+    list.sort((a,b) => s==='low' ? a.rent-b.rent : b.rent-a.rent);   // 租金排序：單純照租金
+  }
 
 
   const rentOn = rentPreset !== 0;

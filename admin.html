@@ -32,8 +32,8 @@ input[type=text],input[type=password],input[type=search]{width:100%;padding:10px
 .inf{flex:1;min-width:0}
 .ti{font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mt{font-size:12px;color:var(--mut)}
-.mv{display:flex;flex-direction:column;gap:2px}
-.mv button{border:1px solid var(--line);background:#fff;border-radius:4px;cursor:pointer;font-size:11px;padding:1px 6px}
+.wt{display:flex;flex-direction:column;align-items:center;font-size:11px;color:var(--mut);flex-shrink:0}
+.wt select{margin-top:2px;padding:4px;border:1px solid var(--line);border-radius:6px;font-size:13px;background:#fff}
 .msg{font-size:13px;margin-left:4px}
 .ok{color:var(--ac)}.err{color:#b91c1c}
 header .ok{color:#c8f2e6}header .err{color:#fecaca}
@@ -62,7 +62,8 @@ a{color:var(--ac)}
       <span class="tab on" data-v="all">全部物件</span>
       <span class="tab" data-v="f">已精選 <b id="fN">0</b></span>
     </div>
-    <p>點 ☆ 變 ⭐ 就是精選；租客頁面精選物件會排在最上面（不會標示）。「已精選」裡可以用 ▲▼ 調整順序。改完記得按右上角「儲存」，約 1 分鐘後網站生效。</p>
+    <p>點 ☆ 變 ⭐ 就是精選。租客頁面（「推薦」排序）最前面的 <input type="number" id="top" min="0" max="20" value="4" style="width:56px;padding:4px;border:1px solid var(--line);border-radius:6px;font-size:14px"> 間，會從精選裡<b>隨機抽</b>；之後才是全部物件隨機（沒抽到的精選也混在裡面）。不會標示精選。</p>
+    <p>每間精選可以設<b>權重 1～5</b>（預設 3）：數字越大越容易被抽到前面。例：權重 5 的物件被抽中的機會約是權重 1 的 5 倍。改完記得按右上角「儲存」，約 1 分鐘後網站生效。</p>
     <p id="gone"></p>
   </div>
 
@@ -83,7 +84,7 @@ a{color:var(--ac)}
 const LANDLORD_ID = 'ualjjinlhrglzm69';
 const REPO        = 'tali4208-hub/WOWroom';   // GitHub 帳號/專案
 const FILE        = 'featured.json';
-const VERSION     = 'v1.6.0';
+const VERSION     = 'v1.7.0';
 const COUNTER_START = 1500;
 const COUNTER_URL   = 'https://abacus.jasoncameron.dev';
 const COUNTER_KEY   = 'wowroom-tali4208/visits';
@@ -95,7 +96,8 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt
 const fmt = n => Number(n).toLocaleString();
 const LS = { get(k){ try{ return localStorage.getItem(k) }catch(e){ return null } }, set(k,v){ try{ localStorage.setItem(k,v) }catch(e){} }, del(k){ try{ localStorage.removeItem(k) }catch(e){} } };
 
-let ALL = [], feat = [], saved = '[]', sha = null, view = 'all';
+let ALL = [], feat = [], weights = {}, topN = 4, saved = '', sha = null, view = 'all';
+const snap = () => JSON.stringify([feat, feat.map(id => weights[id] || 3), topN]);
 $('ver').textContent = VERSION;
 LS.set('wow_owner', '1');   // 開過後台的裝置＝自己人，租客頁面不計瀏覽人次
 
@@ -126,6 +128,10 @@ async function loadListings(){
 const b64dec = s => decodeURIComponent(escape(atob(s.replace(/\n/g,''))));
 const b64enc = s => btoa(unescape(encodeURIComponent(s)));
 
+function applyFeat(j){
+  feat = j.ids || []; weights = Object.assign({}, j.weights || {});
+  topN = Number.isFinite(+j.top) ? +j.top : 4;
+}
 async function loadFeatured(){
   // 有金鑰：從 GitHub 讀（拿得到 sha 才能存）；沒金鑰：讀網站上的檔案
   try{
@@ -133,13 +139,13 @@ async function loadFeatured(){
       const r = await fetch(GH + '?t=' + Date.now(), {headers:{Authorization:'Bearer ' + token(), Accept:'application/vnd.github+json'}});
       if (r.status === 404){ sha = null; feat = []; }
       else if (r.status === 401 || r.status === 403){ setMsg('金鑰無效或權限不足，請按最下面「更換金鑰」重貼', true); return; }
-      else { const j = await r.json(); sha = j.sha; feat = JSON.parse(b64dec(j.content)).ids || []; }
+      else { const j = await r.json(); sha = j.sha; applyFeat(JSON.parse(b64dec(j.content))); }
     } else {
       const r = await fetch(FILE + '?t=' + Date.now(), {cache:'no-store'});
-      feat = r.ok ? ((await r.json()).ids || []) : [];
+      applyFeat(r.ok ? await r.json() : {});
     }
   }catch(e){ setMsg('精選清單讀取失敗', true); }
-  saved = JSON.stringify(feat); render();
+  saved = snap(); $('top').value = topN; render();
 }
 
 function setMsg(t, err){ $('smsg').textContent = t; $('smsg').className = 'msg ' + (err ? 'err' : 'ok'); }
@@ -151,18 +157,22 @@ document.querySelector('.tabs').onclick = e => {
 $('q').oninput = render;
 
 $('list').onclick = e => {
-  const st = e.target.closest('.star'), mv = e.target.closest('[data-mv]');
-  if (st){ const id = st.dataset.id, i = feat.indexOf(id); i >= 0 ? feat.splice(i,1) : feat.push(id); render(); }
-  if (mv){ const id = mv.dataset.id, i = feat.indexOf(id), j = i + (+mv.dataset.mv);
-    if (j >= 0 && j < feat.length){ [feat[i], feat[j]] = [feat[j], feat[i]]; render(); } }
+  const st = e.target.closest('.star');
+  if (st){ const id = st.dataset.id, i = feat.indexOf(id);
+    if (i >= 0){ feat.splice(i,1); delete weights[id]; } else { feat.push(id); weights[id] = 3; } render(); }
 };
+$('list').onchange = e => {
+  const w = e.target.closest('[data-w]'); if (!w) return;
+  weights[w.dataset.w] = +w.value; render();
+};
+$('top').oninput = () => { topN = Math.max(0, Math.min(20, parseInt($('top').value) || 0)); render(); };
 
 function render(){
   if (!ALL.length) return;
   const live = new Set(ALL.map(o => o.object_id));
   const gone = feat.filter(id => !live.has(id));
   $('gone').textContent = gone.length ? `有 ${gone.length} 間精選物件已不在刊登中，儲存時會自動移除。` : '';
-  const dirty = JSON.stringify(feat) !== saved;
+  const dirty = snap() !== saved;
   $('save').disabled = !dirty || !token();
   $('save').textContent = `儲存（${feat.filter(id => live.has(id)).length}）`;
   if (dirty) setMsg('有未儲存的變更');
@@ -179,7 +189,7 @@ function render(){
       <div class="th" style="background-image:url('${esc(o.covers?.[0]?.image?.xs || '')}')"></div>
       <div class="inf"><div class="ti">${esc(o.title)}</div>
         <div class="mt">${esc(o.address.area)}・$${fmt(o.rent)}・<a href="https://www.dd-room.com/object/${o.object_id}" target="_blank" rel="noopener">看物件</a></div></div>
-      ${view==='f' ? `<div class="mv"><button data-mv="-1" data-id="${o.object_id}">▲</button><button data-mv="1" data-id="${o.object_id}">▼</button></div>` : ''}
+      ${f ? `<label class="wt">權重<select data-w="${o.object_id}">${[1,2,3,4,5].map(n => `<option value="${n}"${(weights[o.object_id]||3)===n?' selected':''}>${n}${n===1?' 低':n===3?' 標準':n===5?' 高':''}</option>`).join('')}</select></label>` : ''}
     </div>`;
   }).join('') : '<p class="mt">沒有符合的物件</p>';
 }
@@ -188,13 +198,14 @@ $('save').onclick = async () => {
   const live = new Set(ALL.map(o => o.object_id));
   const ids = feat.filter(id => live.has(id));
   const d = new Date();
-  const body = JSON.stringify({updated: d.toISOString(), ids}, null, 1);
+  const w = {}; ids.forEach(id => w[id] = weights[id] || 3);
+  const body = JSON.stringify({updated: d.toISOString(), top: topN, ids, weights: w}, null, 1);
   $('save').disabled = true; setMsg('儲存中…');
   try{
     const r = await fetch(GH, {method:'PUT', headers:{Authorization:'Bearer ' + token(), Accept:'application/vnd.github+json'},
       body: JSON.stringify({message:`更新精選（${ids.length} 間）`, content: b64enc(body), ...(sha ? {sha} : {})})});
     if (!r.ok){ const t = await r.text(); throw new Error(r.status + ' ' + t.slice(0,120)); }
-    const j = await r.json(); sha = j.content.sha; feat = ids; saved = JSON.stringify(feat);
+    const j = await r.json(); sha = j.content.sha; feat = ids; saved = snap();
     setMsg(`已儲存 ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}，約 1 分鐘後網站生效`);
     render(); setMsg(`已儲存 ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}，約 1 分鐘後網站生效`);
   }catch(e){
