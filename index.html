@@ -56,7 +56,7 @@ button.dd::after{content:"▾";font-size:11px;opacity:.6}
 .pbtn{border:0;border-radius:8px;padding:9px 16px;font-size:14px;cursor:pointer;background:var(--ac);color:#fff;font-weight:700}
 .pbtn.gh{background:var(--cr2);color:var(--tx);font-weight:400}
 
-.wrap{max-width:1080px;margin:0 auto;padding:14px 16px 40px}
+.wrap{max-width:1080px;margin:0 auto;padding:14px 16px 90px}
 .stats{display:flex;gap:10px;margin-bottom:12px}
 .st{flex:1;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 14px}
 .st small{display:block;font-size:12px;color:var(--mut)}
@@ -83,6 +83,14 @@ button.dd::after{content:"▾";font-size:11px;opacity:.6}
 .pr{margin-top:auto;font-size:18px;font-weight:800;color:var(--br)}
 .pr small{font-size:12px;font-weight:400;color:var(--mut)}
 .msg{padding:40px 10px;text-align:center;color:var(--mut)}
+.pager{display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:6px;margin:22px 0 4px}
+.pager button{min-width:40px;height:40px;padding:0 12px;border:1px solid var(--line);background:#fff;border-radius:8px;font-size:15px;cursor:pointer;color:var(--tx)}
+.pager button.on{background:var(--ac);border-color:var(--ac);color:#fff;font-weight:700}
+.pager button:disabled{opacity:.4;cursor:default}
+.pager .dots{color:var(--mut);padding:0 2px}
+.pinfo{text-align:center;font-size:13px;color:var(--mut)}
+.toTop{position:fixed;right:16px;bottom:20px;z-index:50;width:52px;height:52px;border-radius:50%;border:0;background:var(--br);color:#fff;font-size:13px;font-weight:700;line-height:1.1;cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,.25)}
+.toTop:active{transform:scale(.95)}
 @media (max-width:760px){
   .list{grid-template-columns:1fr}
   .brand h1 span{display:none}
@@ -146,14 +154,18 @@ button.dd::after{content:"▾";font-size:11px;opacity:.6}
     </select></div>
   <div class="list" id="list"></div>
   <div class="msg" id="msg">物件讀取中…</div>
+  <div class="pager" id="pager"></div>
+  <div class="pinfo" id="pinfo"></div>
   <div style="text-align:center;font-size:12px;color:var(--mut);margin-top:24px">WOW 台中租屋 <span id="ver"></span></div>
 </main>
+<button class="toTop" id="toTop" aria-label="回到最上面">▲<br>TOP</button>
 
 <script>
 /* ===== 設定（只要改這裡）===== */
 const LANDLORD_ID = 'ualjjinlhrglzm69';            // 租租通「WOW台中租屋小幫手」
 const LINE_URL    = 'https://line.me/ti/p/4Kk6A8hKbV';
-const VERSION     = 'v1.7.0';
+const VERSION     = 'v1.8.0';
+const PAGE_SIZE   = 50;                              // 每頁幾間
 /* 瀏覽人次：用免費計數服務 abacus（不用註冊），顯示＝起始值＋實際次數；同一個瀏覽器分頁只算一次 */
 const COUNTER_START = 1500;
 const COUNTER_URL   = 'https://abacus.jasoncameron.dev';
@@ -228,7 +240,7 @@ $('list').addEventListener('click', e => {
   const h = e.target.closest('.fav'); if (!h) return;
   e.preventDefault(); e.stopPropagation();
   const id = h.dataset.id, i = favs.indexOf(id);
-  i >= 0 ? favs.splice(i, 1) : favs.push(id); saveFavs(); render();
+  i >= 0 ? favs.splice(i, 1) : favs.push(id); saveFavs(); draw();     // 收藏不換頁
 });
 $('ver').textContent = VERSION;
 $('kwNote').textContent = '※ ' + KW_NOTE;
@@ -399,7 +411,14 @@ $('info').onclick = e => {
   render();
 };
 
-function render(){
+/* 分頁：任何篩選、排序改變都回到第 1 頁 */
+let PAGE = 1;
+function render(){ PAGE = 1; draw(); }
+function goPage(p){ PAGE = p; draw(); window.scrollTo({top: 0, behavior: 'smooth'}); }
+$('toTop').onclick = () => window.scrollTo({top: 0, behavior: 'smooth'});
+$('pager').onclick = e => { const b = e.target.closest('button[data-p]'); if (b && !b.disabled) goPage(+b.dataset.p); };
+
+function draw(){
   if (!ALL.length) return;
   const q = $('q').value.trim();
   const words = q.toLowerCase().split(/\s+/).filter(Boolean);
@@ -421,10 +440,18 @@ function render(){
                     : ALL.filter(o => okQ(o) && okT(o) && okR(o) && okA(o) && okK(o));
   const s = $('sort').value;
   if (s === 'new'){
-    // 推薦：前 FEAT_TOP 間＝精選依權重隨機抽；之後＝其餘全部隨機
-    const top = list.filter(o => o._fk >= 0).sort((a,b) => b._fk - a._fk).slice(0, FEAT_TOP);
-    const topSet = new Set(top);
-    list = top.concat(list.filter(o => !topSet.has(o)).sort((a,b) => a._ord - b._ord));
+    // 推薦：每一頁的前 FEAT_TOP 間放精選（依權重抽出先後），精選放完為止；其餘位置全部隨機
+    const F = FEAT_TOP > 0 ? list.filter(o => o._fk >= 0).sort((a,b) => b._fk - a._fk) : [];
+    const fSet = new Set(F);
+    const R = list.filter(o => !fSet.has(o)).sort((a,b) => a._ord - b._ord);
+    const out = [];
+    while (F.length || R.length){
+      const page = F.splice(0, Math.min(FEAT_TOP, F.length));
+      page.push(...R.splice(0, PAGE_SIZE - page.length));
+      if (page.length < PAGE_SIZE && !R.length) page.push(...F.splice(0, PAGE_SIZE - page.length));
+      out.push(...page);
+    }
+    list = out;
   } else {
     list.sort((a,b) => s==='low' ? a.rent-b.rent : b.rent-a.rent);   // 租金排序：單純照租金
   }
@@ -449,7 +476,12 @@ function render(){
     [...selKw].map(i => `<span class="tag" data-k="${i}">${KEYWORDS[i][0]}</span>`).join('');
 
   if (!favMode) $('msg').textContent = list.length ? '' : '沒有符合的物件，試試放寬條件，或加 LINE 告訴我們需求。';
-  $('list').innerHTML = list.map(o => {
+  const pages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
+  if (PAGE > pages) PAGE = pages;
+  const from = (PAGE - 1) * PAGE_SIZE, shown = list.slice(from, from + PAGE_SIZE);
+  $('pinfo').textContent = list.length > PAGE_SIZE ? `第 ${PAGE} / ${pages} 頁（第 ${from + 1}–${from + shown.length} 間，共 ${list.length} 間）` : '';
+  $('pager').innerHTML = pages > 1 ? pagerHtml(PAGE, pages) : '';
+  $('list').innerHTML = shown.map(o => {
     const img = o.covers?.[0]?.image?.sm || '';
     const meta = [o.type_space_name || o.category_name, o.ping ? o.ping + '坪' : '', o.floor ? o.floor + 'F' : ''].filter(Boolean).join(' · ');
     return `<a class="item" href="https://www.dd-room.com/object/${esc(o.object_id)}" target="_blank" rel="noopener">
@@ -462,6 +494,13 @@ function render(){
         <div class="pr">$${fmt(o.rent)}<small> /月</small></div>
       </div></a>`;
   }).join('');
+}
+
+function pagerHtml(cur, n){
+  const nums = [...new Set([1, cur - 2, cur - 1, cur, cur + 1, cur + 2, n])].filter(p => p >= 1 && p <= n).sort((a,b) => a - b);
+  let h = `<button data-p="${cur - 1}"${cur === 1 ? ' disabled' : ''}>上一頁</button>`, prev = 0;
+  nums.forEach(p => { if (p - prev > 1) h += '<span class="dots">…</span>'; h += `<button data-p="${p}"${p === cur ? ' class="on"' : ''}>${p}</button>`; prev = p; });
+  return h + `<button data-p="${cur + 1}"${cur === n ? ' disabled' : ''}>下一頁</button>`;
 }
 
 buildRent(); load();

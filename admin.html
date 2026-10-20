@@ -62,7 +62,7 @@ a{color:var(--ac)}
       <span class="tab on" data-v="all">全部物件</span>
       <span class="tab" data-v="f">已精選 <b id="fN">0</b></span>
     </div>
-    <p>點 ☆ 變 ⭐ 就是精選。租客頁面（「推薦」排序）最前面的 <input type="number" id="top" min="0" max="20" value="4" style="width:56px;padding:4px;border:1px solid var(--line);border-radius:6px;font-size:14px"> 間，會從精選裡<b>隨機抽</b>；之後才是全部物件隨機（沒抽到的精選也混在裡面）。不會標示精選。</p>
+    <p>點 ☆ 變 ⭐ 就是精選。租客頁面（「推薦」排序，每頁 50 間）<b>每一頁</b>最前面的 <input type="number" id="top" min="0" max="20" value="4" style="width:56px;padding:4px;border:1px solid var(--line);border-radius:6px;font-size:14px"> 間放精選，先後依權重隨機決定；精選全部排完就不再重複出現（例：10 間精選、每頁前 4 間 → 第 1 頁 4 間、第 2 頁 4 間、第 3 頁 2 間）。其餘位置全部隨機。不會標示精選。</p>
     <p>每間精選可以設<b>權重 1～5</b>（預設 3）：數字越大越容易被抽到前面。例：權重 5 的物件被抽中的機會約是權重 1 的 5 倍。改完記得按右上角「儲存」，約 1 分鐘後網站生效。</p>
     <p id="gone"></p>
   </div>
@@ -84,7 +84,7 @@ a{color:var(--ac)}
 const LANDLORD_ID = 'ualjjinlhrglzm69';
 const REPO        = 'tali4208-hub/WOWroom';   // GitHub 帳號/專案
 const FILE        = 'featured.json';
-const VERSION     = 'v1.7.0';
+const VERSION     = 'v1.8.0';
 const COUNTER_START = 1500;
 const COUNTER_URL   = 'https://abacus.jasoncameron.dev';
 const COUNTER_KEY   = 'wowroom-tali4208/visits';
