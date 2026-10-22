@@ -2,5 +2,6 @@
  "excludeIps": [
   "36.233.210.136",
   "36.235.242.144"
- ]
+ ],
+ "favApi": "https://wowroom-api.tali4208.workers.dev"
 }
