@@ -164,7 +164,7 @@ button.dd::after{content:"▾";font-size:11px;opacity:.6}
 /* ===== 設定（只要改這裡）===== */
 const LANDLORD_ID = 'ualjjinlhrglzm69';            // 租租通「WOW台中租屋小幫手」
 const LINE_URL    = 'https://line.me/ti/p/4Kk6A8hKbV';
-const VERSION     = 'v1.8.0';
+const VERSION     = 'v1.9.0';
 const PAGE_SIZE   = 50;                              // 每頁幾間
 /* 瀏覽人次：用免費計數服務 abacus（不用註冊），顯示＝起始值＋實際次數；同一個瀏覽器分頁只算一次 */
 const COUNTER_START = 1500;
@@ -234,7 +234,30 @@ $('lineBtn').href = LINE_URL;
 /* 收藏：存在客人自己的瀏覽器（換手機/清除瀏覽資料會不見） */
 let favs = []; try { favs = JSON.parse(localStorage.getItem('wow_favs') || '[]'); } catch(e){}
 let favMode = false;
-function saveFavs(){ try { localStorage.setItem('wow_favs', JSON.stringify(favs)); } catch(e){} }
+function saveFavs(){ try { localStorage.setItem('wow_favs', JSON.stringify(favs)); } catch(e){} syncFavs(); }
+
+/* 後台設定（settings.json：排除 IP、收藏統計網址），整頁只讀一次 */
+const SETTINGS = fetch('settings.json?t=' + Date.now(), {cache:'no-store'}).then(r => r.ok ? r.json() : {}).catch(() => ({}));
+const isOwner = () => { try { return localStorage.getItem('wow_owner') === '1'; } catch(e){ return false; } };
+
+/* 收藏統計：把這個瀏覽器的收藏清單（只有物件 ID＋隨機代號，不含個資）送到 Cloudflare，給後台看排行。開過後台的裝置不送 */
+let syncTimer = null;
+function syncFavs(){
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(async () => {
+    try{
+      if (isOwner()) return;
+      const api = ((await SETTINGS).favApi || '').replace(/\/+$/, '');
+      if (!api) return;
+      let vid = localStorage.getItem('wow_vid');
+      if (!vid){ vid = 'v' + Math.random().toString(36).slice(2, 12) + Date.now().toString(36); localStorage.setItem('wow_vid', vid); }
+      await fetch(api + '/sync', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({vid, ids: favs}), keepalive: true});
+      try { sessionStorage.setItem('wow_fav_synced', '1'); } catch(e){}
+    }catch(e){}
+  }, 800);
+}
+// 舊收藏（v1.9.0 以前收的）在客人下次來時補送一次
+try { if (favs.length && sessionStorage.getItem('wow_fav_synced') !== '1') syncFavs(); } catch(e){}
 $('favBtn').onclick = () => { favMode = !favMode; document.querySelectorAll('.panel').forEach(x => x.classList.remove('open')); render(); window.scrollTo({top: $('list').offsetTop - 160, behavior:'smooth'}); };
 $('list').addEventListener('click', e => {
   const h = e.target.closest('.fav'); if (!h) return;
@@ -275,7 +298,7 @@ async function countVisit(){
     let counted = false; try { counted = sessionStorage.getItem('wow_counted') === '1'; } catch(e){}
     if (!owner && !counted){
       let ips = [];
-      try { const r = await fetch('settings.json?t=' + Date.now(), {cache:'no-store'}); if (r.ok) ips = (await r.json()).excludeIps || []; } catch(e){}
+      try { ips = (await SETTINGS).excludeIps || []; } catch(e){}
       if (ips.length){
         try { const r = await fetch('https://api.ipify.org?format=json'); if (r.ok && ips.includes((await r.json()).ip)) owner = true; } catch(e){}
       }

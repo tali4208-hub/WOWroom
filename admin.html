@@ -38,6 +38,9 @@ input[type=text],input[type=password],input[type=search]{width:100%;padding:10px
 .ok{color:var(--ac)}.err{color:#b91c1c}
 header .ok{color:#c8f2e6}header .err{color:#fecaca}
 a{color:var(--ac)}
+.fc{display:flex;flex-direction:column;align-items:center;flex-shrink:0;min-width:58px;color:#e11d48;font-weight:800;font-size:18px}
+.fc small{font-size:11px;color:var(--mut);font-weight:400}
+#favBar select{padding:6px 8px;border:1px solid var(--line);border-radius:8px;font-size:14px;background:#fff}
 </style>
 </head>
 <body>
@@ -61,6 +64,12 @@ a{color:var(--ac)}
     <div class="tabs">
       <span class="tab on" data-v="all">全部物件</span>
       <span class="tab" data-v="f">已精選 <b id="fN">0</b></span>
+      <span class="tab" data-v="fav">♥ 被收藏</span>
+    </div>
+    <div id="favBar" class="row" style="display:none;margin-bottom:8px">
+      <select id="favDays"><option value="0">全部期間</option><option value="7">近 7 天</option><option value="30">近 30 天</option><option value="90">近 90 天</option></select>
+      <select id="favSort"><option value="n">收藏人數 多→少</option><option value="last">最近被收藏</option></select>
+      <span class="mt" id="favSum"></span>
     </div>
     <p>點 ☆ 變 ⭐ 就是精選。租客頁面（「推薦」排序，每頁 50 間）<b>每一頁</b>最前面的 <input type="number" id="top" min="0" max="20" value="4" style="width:56px;padding:4px;border:1px solid var(--line);border-radius:6px;font-size:14px"> 間放精選，先後依權重隨機決定；精選全部排完就不再重複出現（例：10 間精選、每頁前 4 間 → 第 1 頁 4 間、第 2 頁 4 間、第 3 頁 2 間）。其餘位置全部隨機。不會標示精選。</p>
     <p>每間精選可以設<b>權重 1～5</b>（預設 3）：數字越大越容易被抽到前面。例：權重 5 的物件被抽中的機會約是權重 1 的 5 倍。改完記得按右上角「儲存」，約 1 分鐘後網站生效。</p>
@@ -75,6 +84,14 @@ a{color:var(--ac)}
     <p id="ipMsg" class="msg"></p>
   </div>
 
+  <div class="box" id="favSetup">
+    <h3>♥ 收藏統計設定（Cloudflare）</h3>
+    <p>客人按 ♥ 收藏時，網站會把「哪間被收藏」送到你的 Cloudflare，這裡才看得到排行。設定步驟見「使用說明」。開過後台的裝置收藏不會被算進去。</p>
+    <div class="row" style="margin-bottom:6px"><input type="text" id="apiUrl" placeholder="Cloudflare 網址，例：https://wowroom-api.xxx.workers.dev" style="flex:1"><button class="btn" id="apiSave">儲存網址</button></div>
+    <div class="row"><input type="password" id="favKey" placeholder="收藏統計金鑰（worker.js 最上面的 ADMIN_KEY）" style="flex:1"><button class="btn" id="favKeySave">儲存金鑰</button></div>
+    <p id="apiMsg" class="msg"></p>
+  </div>
+
   <div id="list"><p class="mt">物件讀取中…</p></div>
   <p class="mt" style="text-align:center;margin-top:20px"><a id="tokReset" href="#">更換金鑰</a></p>
 </div>
@@ -84,7 +101,7 @@ a{color:var(--ac)}
 const LANDLORD_ID = 'ualjjinlhrglzm69';
 const REPO        = 'tali4208-hub/WOWroom';   // GitHub 帳號/專案
 const FILE        = 'featured.json';
-const VERSION     = 'v1.8.0';
+const VERSION     = 'v1.9.0';
 const COUNTER_START = 1500;
 const COUNTER_URL   = 'https://abacus.jasoncameron.dev';
 const COUNTER_KEY   = 'wowroom-tali4208/visits';
@@ -152,7 +169,9 @@ function setMsg(t, err){ $('smsg').textContent = t; $('smsg').className = 'msg '
 
 document.querySelector('.tabs').onclick = e => {
   const t = e.target.closest('.tab'); if (!t) return; view = t.dataset.v;
-  document.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x === t)); render();
+  document.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x === t));
+  $('favBar').style.display = view === 'fav' ? 'flex' : 'none';
+  if (view === 'fav') loadStats(); else render();
 };
 $('q').oninput = render;
 
@@ -181,17 +200,27 @@ function render(){
   const words = $('q').value.trim().toLowerCase().split(/\s+/).filter(Boolean);
   const byId = new Map(ALL.map(o => [o.object_id, o]));
   let list = view === 'f' ? feat.map(id => byId.get(id)).filter(Boolean) : ALL;
+  if (view === 'fav'){
+    if (!STATS){ $('list').innerHTML = `<p class="mt">${esc(statsMsg || '讀取中…')}</p>`; return; }
+    const by = $('favSort').value;
+    const rows = STATS.items.filter(r => byId.has(r.oid)).sort((a,b) => by === 'last' ? b.last - a.last : (b.n - a.n) || (b.last - a.last));
+    const hidden = STATS.items.length - rows.length;
+    $('favSum').textContent = `${STATS.people} 位客人收藏了 ${rows.length} 間` + (hidden ? `（另有 ${hidden} 間已下架／租出，不顯示）` : '');
+    favInfo = new Map(rows.map(r => [r.oid, r]));
+    list = rows.map(r => byId.get(r.oid));
+  }
   list = list.filter(o => words.every(w => o._text.includes(w)));
   $('list').innerHTML = list.length ? list.map(o => {
-    const f = feat.includes(o.object_id);
+    const f = feat.includes(o.object_id), fi = view === 'fav' ? favInfo.get(o.object_id) : null;
     return `<div class="it${f?' f':''}">
       <span class="star" data-id="${o.object_id}">${f?'⭐':'☆'}</span>
+      ${fi ? `<div class="fc">♥ ${fi.n}<small>${fmtTime(fi.last)}</small></div>` : ''}
       <div class="th" style="background-image:url('${esc(o.covers?.[0]?.image?.xs || '')}')"></div>
       <div class="inf"><div class="ti">${esc(o.title)}</div>
         <div class="mt">${esc(o.address.area)}・$${fmt(o.rent)}・<a href="https://www.dd-room.com/object/${o.object_id}" target="_blank" rel="noopener">看物件</a></div></div>
       ${f ? `<label class="wt">權重<select data-w="${o.object_id}">${[1,2,3,4,5].map(n => `<option value="${n}"${(weights[o.object_id]||3)===n?' selected':''}>${n}${n===1?' 低':n===3?' 標準':n===5?' 高':''}</option>`).join('')}</select></label>` : ''}
     </div>`;
-  }).join('') : '<p class="mt">沒有符合的物件</p>';
+  }).join('') : `<p class="mt">${view === 'fav' ? '這段期間還沒有客人收藏' : '沒有符合的物件'}</p>`;
 }
 
 $('save').onclick = async () => {
@@ -216,16 +245,18 @@ $('save').onclick = async () => {
 
 /* ===== 瀏覽人次與排除 IP（存在 settings.json） ===== */
 const GHS = `https://api.github.com/repos/${REPO}/contents/settings.json`;
-let ips = [], ssha = null, myIp = '';
+let ips = [], ssha = null, myIp = '', SET = {};
 async function loadSettings(){
   try{
     if (token()){
       const r = await fetch(GHS + '?t=' + Date.now(), {headers:{Authorization:'Bearer ' + token(), Accept:'application/vnd.github+json'}});
-      if (r.ok){ const j = await r.json(); ssha = j.sha; ips = JSON.parse(b64dec(j.content)).excludeIps || []; }
+      if (r.ok){ const j = await r.json(); ssha = j.sha; SET = JSON.parse(b64dec(j.content)) || {}; }
     } else {
-      const r = await fetch('settings.json?t=' + Date.now(), {cache:'no-store'}); if (r.ok) ips = (await r.json()).excludeIps || [];
+      const r = await fetch('settings.json?t=' + Date.now(), {cache:'no-store'}); if (r.ok) SET = (await r.json()) || {};
     }
   }catch(e){}
+  ips = SET.excludeIps || [];
+  if (SET.favApi && !$('apiUrl').value) $('apiUrl').value = SET.favApi;
   renderIps();
 }
 function renderIps(){
@@ -233,20 +264,52 @@ function renderIps(){
   $('ipAdd').disabled = !myIp || ips.includes(myIp) || !token();
   $('ipAdd').textContent = ips.includes(myIp) ? '這個 IP 已排除' : '排除這個 IP';
 }
-async function saveSettings(){
-  $('ipMsg').textContent = '儲存中…'; $('ipMsg').className = 'msg';
+async function saveSettings(msgEl = 'ipMsg'){
+  $(msgEl).textContent = '儲存中…'; $(msgEl).className = 'msg';
   try{
-    const body = JSON.stringify({excludeIps: ips}, null, 1);
+    SET.excludeIps = ips;
+    const body = JSON.stringify(SET, null, 1);
     const r = await fetch(GHS, {method:'PUT', headers:{Authorization:'Bearer ' + token(), Accept:'application/vnd.github+json'},
-      body: JSON.stringify({message:'更新排除 IP', content: b64enc(body), ...(ssha ? {sha: ssha} : {})})});
+      body: JSON.stringify({message:'更新網站設定', content: b64enc(body), ...(ssha ? {sha: ssha} : {})})});
     if (!r.ok) throw new Error(r.status);
     ssha = (await r.json()).content.sha;
-    $('ipMsg').textContent = '已儲存，約 1 分鐘後生效'; $('ipMsg').className = 'msg ok';
-  }catch(e){ $('ipMsg').textContent = '儲存失敗（' + e.message + '），請重新整理再試'; $('ipMsg').className = 'msg err'; }
+    $(msgEl).textContent = '已儲存，約 1 分鐘後生效'; $(msgEl).className = 'msg ok';
+  }catch(e){ $(msgEl).textContent = '儲存失敗（' + e.message + '），請重新整理再試'; $(msgEl).className = 'msg err'; }
   renderIps();
 }
 $('ipAdd').onclick = () => { if (myIp && !ips.includes(myIp)){ ips.push(myIp); saveSettings(); } };
 $('ipList').onclick = e => { const a = e.target.closest('[data-ip]'); if (!a) return; e.preventDefault(); ips = ips.filter(x => x !== a.dataset.ip); saveSettings(); };
+/* ===== 收藏統計（Cloudflare） ===== */
+let STATS = null, statsMsg = '', favInfo = new Map();
+const favKey = () => LS.get('wow_fav_key') || '';
+const apiBase = () => ($('apiUrl').value.trim() || SET.favApi || '').replace(/\/+$/, '');
+function fmtTime(ms){ const d = new Date(ms); return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; }
+async function loadStats(){
+  STATS = null; statsMsg = '讀取中…'; render();
+  const api = apiBase();
+  if (!api){ statsMsg = '還沒設定 Cloudflare 網址，請在上方「收藏統計設定」填入'; render(); return; }
+  if (!favKey()){ statsMsg = '還沒貼收藏統計金鑰，請在上方「收藏統計設定」貼上'; render(); return; }
+  try{
+    const r = await fetch(`${api}/stats?days=${$('favDays').value}`, {headers:{'X-Admin-Key': favKey()}});
+    if (r.status === 401){ statsMsg = '收藏統計金鑰不對，請重新貼上'; render(); return; }
+    if (!r.ok) throw new Error(r.status);
+    STATS = await r.json();
+  }catch(e){ statsMsg = '連不到 Cloudflare（' + e.message + '），請確認網址'; }
+  render();
+}
+$('favDays').onchange = loadStats;
+$('favSort').onchange = render;
+$('apiSave').onclick = async () => {
+  const u = $('apiUrl').value.trim().replace(/\/+$/, '');
+  if (!/^https:\/\/[^\s]+$/.test(u)){ $('apiMsg').textContent = '網址要以 https:// 開頭'; $('apiMsg').className = 'msg err'; return; }
+  try { const r = await fetch(u + '/'); const j = await r.json(); if (!j.ok) throw new Error(j.error || '回應不對'); }
+  catch(e){ $('apiMsg').textContent = '這個網址連不上或設定還沒完成：' + e.message; $('apiMsg').className = 'msg err'; return; }
+  if (!token()){ $('apiMsg').textContent = '要先貼 GitHub 金鑰才能儲存'; $('apiMsg').className = 'msg err'; return; }
+  SET.favApi = u; $('apiUrl').value = u; await saveSettings('apiMsg');
+};
+$('favKeySave').onclick = () => { const k = $('favKey').value.trim(); if (!k) return; LS.set('wow_fav_key', k); $('favKey').value = '';
+  $('apiMsg').textContent = '金鑰已存在這台裝置'; $('apiMsg').className = 'msg ok'; if (view === 'fav') loadStats(); };
+
 (async () => {
   try { const r = await fetch(`${COUNTER_URL}/get/${COUNTER_KEY}`); $('vN').textContent = (COUNTER_START + (r.ok ? ((await r.json()).value || 0) : 0)).toLocaleString(); } catch(e){ $('vN').textContent = COUNTER_START.toLocaleString(); }
   try { const r = await fetch('https://api.ipify.org?format=json'); myIp = (await r.json()).ip; } catch(e){}
