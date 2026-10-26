@@ -31,6 +31,8 @@ textarea{min-height:90px;resize:vertical}
 .tab.on{background:var(--br);color:#fff;border-color:var(--br)}
 .it{display:flex;gap:10px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px;margin-bottom:8px}
 .it.off{opacity:.6}
+.it .sel{width:22px;height:22px;accent-color:var(--ac);flex-shrink:0;cursor:pointer}
+.it.picked{border-color:var(--ac);background:#eef7f4}
 .th{width:84px;height:62px;border-radius:6px;background:var(--cr2) center/cover;flex-shrink:0}
 .inf{flex:1;min-width:0}
 .ti{font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -84,7 +86,7 @@ table.pl th{background:var(--cr2);position:sticky;top:0}
 </head>
 <body>
 <header><div class="hin">
-  <h1>🏠 自有物件後台 <small style="font-weight:400;opacity:.7">BETA.2.1</small></h1>
+  <h1>🏠 自有物件後台 <small style="font-weight:400;opacity:.7">BETA.3</small></h1>
   <span id="hmsg"></span>
   <a href="mine.html" target="_blank">客人頁面 ↗</a>
   <a href="admin.html">精選後台</a>
@@ -115,6 +117,13 @@ table.pl th{background:var(--cr2);position:sticky;top:0}
         <select id="fSt" style="width:auto"><option value="">全部狀態</option><option value="on">刊登中</option><option value="off">暫停</option></select>
         <select id="fCat" style="width:auto"><option value="">全部類型</option><option value="studio">套房</option><option value="home">整層住家</option><option value="biz">店面辦公</option></select>
         <button class="btn gh sm" id="reload">重新整理</button>
+        <button class="btn gh sm" id="bEdit">編輯</button>
+      </div>
+      <div class="row" id="bBar" style="display:none;margin-top:10px;padding:8px;background:#fff7ed;border-radius:8px">
+        <b id="bN" style="font-size:14px">已勾 0 間</b>
+        <button class="btn gh sm" id="bAll">全選</button><button class="btn gh sm" id="bNone">清除</button>
+        <span style="flex:1"></span>
+        <button class="btn gh sm" id="bOff">暫停勾選的</button><button class="btn gh sm" id="bOn">恢復刊登</button><button class="btn red sm" id="bDel">刪除勾選的</button>
       </div>
       <p id="sum"></p>
     </div>
@@ -330,18 +339,20 @@ document.querySelectorAll('.tab').forEach(t => t.onclick = () => {
 
 /* ---------- 物件列表 ---------- */
 async function loadList(){
-  try { ITEMS = (await site('GET', '/admin/listings')).items || []; drawList(); flash(''); }
+  try { ITEMS = (await site('GET', '/admin/listings')).items || []; drawList(); if ($('hmsg').className === 'err') flash(''); }
   catch(e){ flash(e.message, false); $('list').innerHTML = ''; }
 }
+let BULK = false, SEL = new Set(), SHOWN = [];
 function drawList(){
   const q = $('q').value.trim().toLowerCase(), fs = $('fSt').value, fc = $('fCat').value;
-  const list = ITEMS.filter(o => (!fs || o.status === fs) && (!fc || o.cat === fc) &&
+  const list = SHOWN = ITEMS.filter(o => (!fs || o.status === fs) && (!fc || o.cat === fc) &&
     (!q || [o.id, o.addr, o.room, o.title, o.area, o.road, o.company].join(' ').toLowerCase().includes(q)));
   const on = ITEMS.filter(o => o.status === 'on').length;
   $('sum').textContent = `共 ${ITEMS.length} 間（刊登中 ${on}、暫停 ${ITEMS.length - on}）｜顯示 ${list.length} 間。新上傳的照片約 1～2 分鐘後客人頁面才看得到。`;
   $('list').innerHTML = list.map(o => {
     const cover = o.photos && o.photos[0] ? photoUrl(o.id, o.photos[0]) : '';
-    return `<div class="it${o.status === 'off' ? ' off' : ''}">
+    return `<div class="it${o.status === 'off' ? ' off' : ''}${BULK && SEL.has(o.id) ? ' picked' : ''}">
+      ${BULK ? `<input type="checkbox" class="sel" data-sel="${esc(o.id)}"${SEL.has(o.id) ? ' checked' : ''}>` : ''}
       <div class="th" style="background-image:url('${esc(cover)}'),url('${esc(o.photos && o.photos[0] ? rawUrl(o.id, o.photos[0]) : '')}')"></div>
       <div class="inf">
         <div class="ti"><span class="badge ${o.status}">${o.status === 'on' ? '刊登中' : '暫停'}</span>${esc(o.id)}｜${esc(o.title)}</div>
@@ -355,7 +366,45 @@ function drawList(){
         <button class="btn red sm" data-del="${esc(o.id)}">刪除</button>
       </div></div>`;
   }).join('') || '<p class="hint">還沒有物件。按「＋ 新增物件」或用「Excel 匯入」。</p>';
+  bulkCount();
 }
+/* 批次編輯：按「編輯」→ 每間左邊出現勾選 → 一起暫停／恢復／刪除 */
+function bulkCount(){ $('bN').textContent = `已勾 ${SEL.size} 間`; }
+$('bEdit').onclick = () => {
+  BULK = !BULK; if (!BULK) SEL.clear();
+  $('bEdit').textContent = BULK ? '完成' : '編輯'; $('bEdit').classList.toggle('red', BULK);
+  $('bBar').style.display = BULK ? '' : 'none'; drawList();
+};
+$('bAll').onclick = () => { SHOWN.forEach(o => SEL.add(o.id)); drawList(); };
+$('bNone').onclick = () => { SEL.clear(); drawList(); };
+$('list').addEventListener('change', e => {
+  const c = e.target.closest('[data-sel]'); if (!c) return;
+  c.checked ? SEL.add(c.dataset.sel) : SEL.delete(c.dataset.sel);
+  c.closest('.it').classList.toggle('picked', c.checked); bulkCount();
+});
+async function bulkDo(kind){
+  const ids = [...SEL].filter(id => ITEMS.some(o => o.id === id));
+  if (!ids.length) return flash('還沒有勾選物件', false);
+  const btns = ['bOff','bOn','bDel'].map($); btns.forEach(b => b.disabled = true);
+  try{
+    if (kind === 'del'){
+      if (!confirm(`確定刪除勾選的 ${ids.length} 間？照片也會一起刪掉，無法復原。`)) return;
+      flash(`刪除中…（${ids.length} 間）`);
+      for (let i = 0; i < ids.length; i += 50) await site('POST', '/admin/delete', {ids: ids.slice(i, i + 50)});
+      const files = ids.flatMap(id => (ITEMS.find(o => o.id === id).photos || []).map(f => `${PHOTO_DIR}/${id}/${f}`));
+      if (files.length) await commit({}, files, `後台：刪除 ${ids.length} 間物件`).catch(err => flash('物件已刪，但照片刪除失敗：' + err.message, false));
+      flash(`✓ 已刪除 ${ids.length} 間`);
+    } else {
+      for (let i = 0; i < ids.length; i += 50) await site('POST', '/admin/status', {ids: ids.slice(i, i + 50), status: kind});
+      flash(`✓ ${ids.length} 間已${kind === 'off' ? '暫停' : '恢復刊登'}`);
+    }
+    SEL.clear(); await loadList();
+  } catch(err){ flash(err.message, false); }
+  finally { btns.forEach(b => b.disabled = false); }
+}
+$('bOff').onclick = () => bulkDo('off');
+$('bOn').onclick = () => bulkDo('on');
+$('bDel').onclick = () => bulkDo('del');
 ['q','fSt','fCat'].forEach(id => $(id).oninput = drawList);
 $('reload').onclick = loadList;
 $('list').onclick = async e => {
