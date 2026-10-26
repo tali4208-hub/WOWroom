@@ -126,6 +126,7 @@ button.dd::after{content:"▾";font-size:11px;opacity:.6}
     </div>
     <button class="dd" id="bArea" data-p="pArea">區域</button>
     <button class="dd" id="bRent" data-p="pRent">租金</button>
+    <button class="dd" id="bLay" data-p="pLay" style="display:none">格局</button>
     <button class="dd" id="bKw" data-p="pKw">特色</button>
     <button class="clr" id="clrAll">清除</button>
   </div>
@@ -137,6 +138,11 @@ button.dd::after{content:"▾";font-size:11px;opacity:.6}
     <div class="rl" id="rents"></div>
     <div class="rc"><input type="number" id="minR" placeholder="最低" inputmode="numeric"> ～ <input type="number" id="maxR" placeholder="最高" inputmode="numeric"></div>
     <div class="pf"><button class="pbtn gh" id="clrRent">清除</button><button class="pbtn" data-close>看結果</button></div>
+  </div>
+  <div class="panel" id="pLay">
+    <div id="lays"></div>
+    <div class="phint">可複選。格局取自租租通物件資料的「幾房幾廳」。數字是目前條件下符合的間數。</div>
+    <div class="pf"><button class="pbtn gh" id="clrLay">清除</button><button class="pbtn" data-close>看結果</button></div>
   </div>
   <div class="panel" id="pKw">
     <div class="chips" id="kws"></div>
@@ -164,7 +170,7 @@ button.dd::after{content:"▾";font-size:11px;opacity:.6}
 /* ===== 設定（只要改這裡）===== */
 const LANDLORD_ID = 'ualjjinlhrglzm69';            // 租租通「WOW台中租屋小幫手」
 const LINE_URL    = 'https://line.me/ti/p/4Kk6A8hKbV';
-const VERSION     = 'v1.9.0';
+const VERSION     = 'v1.10.0';
 const PAGE_SIZE   = 50;                              // 每頁幾間
 /* 瀏覽人次：用免費計數服務 abacus（不用註冊），顯示＝起始值＋實際次數；同一個瀏覽器分頁只算一次 */
 const COUNTER_START = 1500;
@@ -223,7 +229,7 @@ const isBiz = t => t === 'shop' || t === 'office';
 const kwShown = i => isBiz(selType) ? false : selType === 'studio' ? KEYWORDS[i][2].includes('s') : selType === 'home' ? KEYWORDS[i][2].includes('h') : true;
 const TYPES = {studio:'套房', home:'整層住家', shop:'店面', office:'辦公'};
 
-let ALL = [], selAreas = new Set(), selKw = new Set(), rentPreset = 0, selType = '';
+let ALL = [], selAreas = new Set(), selKw = new Set(), selLay = new Set(), rentPreset = 0, selType = '';
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt = n => Number(n).toLocaleString();
@@ -339,6 +345,10 @@ async function load(){
       o._text = (o.title + ' ' + (o.address?.complete || '') + ' ' + (o.type_space_name || '') + ' ' + (o.category_name || '')).toLowerCase();
       o._type = typeOf(o);
       o._kw = KEYWORDS.map(k => kwTest(k, o.title));
+      // 格局（只有整層住家）：用租租通資料的 pattern 欄位，不從標題猜；沒有資料的不列入格局篩選
+      const pt = o.pattern || {}, bd = +pt.bedroom || 0, lv = +pt.living_room || 0;
+      o._bed = o._type === 'home' && bd > 0 ? bd : 0;
+      o._lay = o._bed ? `${bd}房${lv}廳` : '';
       ALL.push(o);
     }));
     await featP;
@@ -363,6 +373,9 @@ $('types').onclick = e => {
   [...selKw].forEach(i => { if (!kwShown(i)) selKw.delete(i); });
   $('bKw').style.display = isBiz(selType) ? 'none' : '';
   if (isBiz(selType)) $('pKw').classList.remove('open');
+  // 格局只在「整層住家」出現；換到別的類型就取消
+  $('bLay').style.display = selType === 'home' ? '' : 'none';
+  if (selType !== 'home'){ selLay.clear(); $('pLay').classList.remove('open'); }
   render();
 };
 
@@ -397,6 +410,31 @@ $('areas').onclick = e => {
 };
 $('clrArea').onclick = () => { selAreas.clear(); render(); };
 
+/* 格局（整層住家）：依房數分組，按鈕依實際有的「幾房幾廳」自動產生 */
+const bedGroup = b => b >= 4 ? '4房以上' : b + '房';
+function buildLay(base){
+  const cnt = {}; base.forEach(o => { if (o._lay) cnt[o._lay] = (cnt[o._lay]||0) + 1; });
+  const all = new Map();   // 格局 → [房, 廳]，取全部整層住家（篩選後 0 間的也列出，變灰）
+  ALL.forEach(o => { if (o._lay && !all.has(o._lay)) all.set(o._lay, [o._bed, +o.pattern.living_room || 0]); });
+  selLay.forEach(k => { if (!all.has(k)) all.set(k, [+k.split('房')[0], +k.split('房')[1].replace('廳','')]); });
+  const keys = [...all.keys()].sort((a,b) => all.get(a)[0] - all.get(b)[0] || all.get(a)[1] - all.get(b)[1]);
+  const groups = []; keys.forEach(k => { const g = bedGroup(all.get(k)[0]); let x = groups.find(y => y[0] === g); if (!x) groups.push(x = [g, []]); x[1].push(k); });
+  $('lays').innerHTML = groups.map(([g, list]) =>
+    `<div class="pg"><div class="pg-h">${g}<em style="font-weight:400;font-style:normal;color:var(--mut)">${list.reduce((s,k)=>s+(cnt[k]||0),0)}間</em><button data-lg="${g}">全選</button></div><div class="ck">` +
+    list.map(k => { const on = selLay.has(k), n = cnt[k]||0;
+      return `<label class="${n||on?'':'no'}"><input type="checkbox" value="${k}"${on?' checked':''}${n||on?'':' disabled'}>${k}<em>${n}</em></label>`; }).join('') +
+    `</div></div>`).join('') || '<div class="phint">目前沒有整層住家物件</div>';
+}
+$('lays').onchange = e => { const k = e.target.value; e.target.checked ? selLay.add(k) : selLay.delete(k); render(); };
+$('lays').onclick = e => {
+  const g = e.target.closest('[data-lg]'); if (!g) return;
+  const list = [...new Set(ALL.filter(o => o._lay && bedGroup(o._bed) === g.dataset.lg).map(o => o._lay))];
+  const allOn = list.every(k => selLay.has(k));
+  list.forEach(k => allOn ? selLay.delete(k) : selLay.add(k));
+  render();
+};
+$('clrLay').onclick = () => { selLay.clear(); render(); };
+
 /* 特色 */
 function buildKw(base){
   $('kws').innerHTML = KEYWORDS.map((k,i) => {
@@ -415,8 +453,8 @@ $('clrKw').onclick = () => { selKw.clear(); render(); };
 $('clrAll').onclick = () => {
   selType = ''; [...$('types').children].forEach(x => x.classList.toggle('on', x.dataset.t === ''));
   RENTS = RENT_SETS['']; rentPreset = 0; $('minR').value=''; $('maxR').value=''; buildRent();
-  selAreas.clear(); selKw.clear(); $('q').value = ''; favMode = false;
-  $('bKw').style.display = '';
+  selAreas.clear(); selKw.clear(); selLay.clear(); $('q').value = ''; favMode = false;
+  $('bKw').style.display = ''; $('bLay').style.display = 'none';
   document.querySelectorAll('.panel').forEach(x => x.classList.remove('open'));
   render();
 };
@@ -428,6 +466,7 @@ $('info').onclick = e => {
   const t = e.target.closest('.tag'); if (!t) return;
   if (t.dataset.a) selAreas.delete(t.dataset.a);
   if (t.dataset.k) selKw.delete(+t.dataset.k);
+  if (t.dataset.l) selLay.delete(t.dataset.l);
   if (t.dataset.r) { rentPreset = 0; $('minR').value=''; $('maxR').value=''; buildRent(); }
   if (t.dataset.q) $('q').value = '';
   if (t.dataset.fav) favMode = false;
@@ -451,16 +490,18 @@ function draw(){
   const okR = o => o.rent >= lo && o.rent <= hi;
   const okA = o => !selAreas.size || selAreas.has(o.address.area);
   const okK = o => [...selKw].every(i => o._kw[i]);
+  const okL = o => !selLay.size || selLay.has(o._lay);
 
   // 面板裡的數字＝「其他條件不變時」各選項有幾間
-  buildAreas(ALL.filter(o => okQ(o) && okT(o) && okR(o) && okK(o)));
-  buildKw(ALL.filter(o => okQ(o) && okT(o) && okR(o) && okA(o) && okK(o)));
+  buildAreas(ALL.filter(o => okQ(o) && okT(o) && okR(o) && okK(o) && okL(o)));
+  buildKw(ALL.filter(o => okQ(o) && okT(o) && okR(o) && okA(o) && okK(o) && okL(o)));
+  if (selType === 'home') buildLay(ALL.filter(o => okQ(o) && okT(o) && okR(o) && okA(o) && okK(o)));
 
   const live = new Set(ALL.map(o => o.object_id));
   const favLive = favs.filter(id => live.has(id));
   $('favN').textContent = favLive.length; $('favBtn').classList.toggle('on', favMode);
   let list = favMode ? ALL.filter(o => favs.includes(o.object_id))      // 收藏模式：只看收藏，不套其他條件
-                    : ALL.filter(o => okQ(o) && okT(o) && okR(o) && okA(o) && okK(o));
+                    : ALL.filter(o => okQ(o) && okT(o) && okR(o) && okA(o) && okK(o) && okL(o));
   const s = $('sort').value;
   if (s === 'new'){
     // 推薦：每一頁的前 FEAT_TOP 間放精選（依權重抽出先後），精選放完為止；其餘位置全部隨機
@@ -486,6 +527,8 @@ function draw(){
   $('bArea').textContent = selAreas.size ? `區域(${selAreas.size})` : '區域';
   $('bRent').classList.toggle('act', rentOn);
   $('bRent').textContent = rentOn ? `租金 ${rentLbl}` : '租金';
+  $('bLay').classList.toggle('act', selLay.size > 0);
+  $('bLay').textContent = selLay.size ? `格局(${selLay.size})` : '格局';
   $('bKw').classList.toggle('act', selKw.size > 0);
   $('bKw').textContent = selKw.size ? `特色(${selKw.size})` : '特色';
 
@@ -496,6 +539,7 @@ function draw(){
     (q ? `<span class="tag" data-q="1">「${esc(q)}」</span>` : '') +
     [...selAreas].map(a => `<span class="tag" data-a="${a}">${a}</span>`).join('') +
     (rentOn ? `<span class="tag" data-r="1">${rentLbl}</span>` : '') +
+    [...selLay].map(k => `<span class="tag" data-l="${k}">${k}</span>`).join('') +
     [...selKw].map(i => `<span class="tag" data-k="${i}">${KEYWORDS[i][0]}</span>`).join('');
 
   if (!favMode) $('msg').textContent = list.length ? '' : '沒有符合的物件，試試放寬條件，或加 LINE 告訴我們需求。';
@@ -506,7 +550,7 @@ function draw(){
   $('pager').innerHTML = pages > 1 ? pagerHtml(PAGE, pages) : '';
   $('list').innerHTML = shown.map(o => {
     const img = o.covers?.[0]?.image?.sm || '';
-    const meta = [o.type_space_name || o.category_name, o.ping ? o.ping + '坪' : '', o.floor ? o.floor + 'F' : ''].filter(Boolean).join(' · ');
+    const meta = [o.type_space_name || o.category_name, o._lay, o.ping ? o.ping + '坪' : '', o.floor ? o.floor + 'F' : ''].filter(Boolean).join(' · ');
     return `<a class="item" href="https://www.dd-room.com/object/${esc(o.object_id)}" target="_blank" rel="noopener">
       <div class="ph" style="background-image:url('${esc(img)}')" role="img" aria-label="${esc(o.title)}"><span class="fav${favs.includes(o.object_id)?' on':''}" data-id="${esc(o.object_id)}" role="button" aria-label="收藏">♥</span></div>
       <div class="ib">
