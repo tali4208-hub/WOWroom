@@ -90,7 +90,11 @@ button.dd::after{content:"▾";font-size:11px;opacity:.6}
 .dv-top button{border:0;background:rgba(255,255,255,.15);color:#fff;border-radius:8px;padding:8px 12px;font-size:14px;cursor:pointer}
 .dv-top .code{margin-left:auto;font-size:13px;opacity:.85}
 .dv-in{max-width:880px;margin:0 auto;padding:0 0 40px}
-.gal{position:relative;background:#222}
+.gal2{display:flex;background:#222}
+.thumbs{flex:0 0 96px;display:flex;flex-direction:column;gap:4px;padding:4px;overflow-y:auto;height:min(62vh,520px);scrollbar-width:thin}
+.thumbs img{width:100%;aspect-ratio:4/3;object-fit:cover;flex-shrink:0;cursor:pointer;opacity:.55;border:2px solid transparent;border-radius:4px}
+.thumbs img.on{opacity:1;border-color:#fff}
+.gal{position:relative;background:#222;flex:1;min-width:0}
 .slides{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 .slides::-webkit-scrollbar{display:none}
 .slides img{flex:0 0 100%;width:100%;height:min(62vh,520px);object-fit:contain;scroll-snap-align:center;background:#222}
@@ -123,6 +127,7 @@ button.dd::after{content:"▾";font-size:11px;opacity:.6}
   #sort{max-width:118px;padding:7px 6px;flex-shrink:0}
   .gal .nav{display:none}
   .slides img{height:62vw;max-height:60vh}
+  .thumbs{flex-basis:62px;height:62vw;max-height:60vh;padding:3px;gap:3px}
 }
 </style>
 </head>
@@ -193,7 +198,7 @@ button.dd::after{content:"▾";font-size:11px;opacity:.6}
 <script>
 /* ===== 設定（只要改這裡）===== */
 const LINE_URL  = 'https://line.me/ti/p/4Kk6A8hKbV';
-const VERSION   = 'BETA';
+const VERSION   = 'BETA.2';
 const PAGE_SIZE = 50;
 const PHOTO_DIR = 'p';     // 照片在 GitHub 倉庫的 p/物件編號/
 const RENT_SETS = {
@@ -251,8 +256,8 @@ async function load(){
     ALL.forEach(o => {
       o._ord = Math.random();
       o._lay = layOf(o);
-      o._feats = new Set(o.feats || []);
-      o._text = [o.id, o.title, o.area, o.road, TYPES[o.cat], ...(o.feats || [])].join(' ').toLowerCase();
+      o._feats = new Set(featsOf(o));
+      o._text = [o.id, o.title, o.area, o.road, TYPES[o.cat], ...o._feats].join(' ').toLowerCase();
     });
     const d = new Date();
     $('stat').textContent = `目前 ${ALL.length} 間刊登中｜資料更新 ${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
@@ -435,6 +440,81 @@ function pagerHtml(cur, n){
   return h + `<button data-p="${cur + 1}"${cur === n ? ' disabled' : ''}>下一頁</button>`;
 }
 
+/* 物件資訊（後台點選的按鈕／Excel 匯入）→ 特色、詳細資料表 */
+const SPEC_EXTRA = ['首月半價','免仲介費','可報稅','飲水機','可營登','可餐飲'];   // 標題用、spec 沒有的特色
+function featsOf(o){
+  const sp = o.spec;
+  if (!sp || !Object.keys(sp).length) return o.feats || [];
+  const f = new Set((o.feats || []).filter(x => SPEC_EXTRA.includes(x)));
+  const v = k => sp[k] && sp[k].v;
+  if (v('pet') === '可'){ if (sp.pet.cat) f.add('可養貓'); if (sp.pet.dog) f.add('可養狗'); }
+  const w = sp.wash || {};
+  if (w.w === '陽台獨洗') f.add('陽台獨洗');
+  if (w.w === '獨洗' && w.d === '獨曬') f.add('獨洗獨曬');
+  if (w.w === '獨洗' && w.d === '共曬') f.add('獨洗共曬');
+  if (v('lift') === '電梯') f.add('電梯');
+  if (v('subsidy') === '可') f.add('租屋補助');
+  if (v('car') === '平面') f.add('平面車位');
+  if (v('car') === '機械') f.add('機械車位');
+  if (v('trash') === '有') f.add('子母車');
+  if (v('guard') === '有') f.add('管理員');
+  if (v('sink') === '有') f.add('流理台');
+  if (v('dry') === '有') f.add('乾濕分離');
+  if (v('induction') === '有') f.add('電磁爐');
+  if (v('balcony') === '有') f.add('有陽台');
+  if (v('moto') === '有') f.add('機車位');
+  if (v('household') === '可') f.add('可戶籍');
+  if (v('short') === '可') f.add('可短租');
+  return [...FEAT_ORDER, '電磁爐'].filter(x => f.has(x)).concat([...f].filter(x => !FEAT_ORDER.includes(x) && x !== '電磁爐'));
+}
+const money = n => (typeof n === 'number' ? fmt(n) + ' 元' : String(n ?? ''));
+const plusTxt = p => { if (p === '' || p === null || p === undefined) return ''; if (typeof p === 'number') return '+' + fmt(p); const t = String(p).trim(); return /^[+＋]/.test(t) ? t : '+' + t; };
+function layText(o){
+  if (o.cat === 'studio') return '套房';
+  if (o.cat === 'home'){
+    const t = (o.bed ? o.bed + '房' : '') + (o.liv !== null && o.liv !== undefined && o.bed ? o.liv + '廳' : '') + (o.bath ? o.bath + '衛' : '') + (o.balc ? o.balc + '陽台' : '');
+    return t || '整層住家';
+  }
+  return '';
+}
+function infoRows(o){
+  const sp = o.spec, rows = [];
+  const add = (k, v) => { if (v !== '' && v !== null && v !== undefined) rows.push([k, v]); };
+  add('格局', layText(o));
+  const flTxt = o.floor ? o.floor + (/^\d+$/.test(o.floor) ? 'F' : '') + (o.floors ? ` / 共 ${o.floors}F` : '') : '';
+  if (!sp || !Object.keys(sp).length){   // 舊資料（店面辦公、BETA 早期上架的）
+    add('坪數', o.ping ? o.ping + ' 坪' : '');
+    (o.info || []).forEach(([k, v]) => { if (['家具設備','格局','坪數'].includes(k)) return; if (k === '機車位' && o.cat === 'studio') return; add(k, v); });
+    return rows;
+  }
+  const v = k => sp[k] ? sp[k].v : '';
+  const oth = k => sp[k] && sp[k].v === '其他' ? sp[k].o : '';
+  add('電梯/爬梯', v('lift'));
+  add('坪數', o.ping ? o.ping + ' 坪' : '');
+  add('樓層', flTxt);
+  const e = v('elec');
+  add('電費', e === '台電分算' ? '台電分算（新制）' : /^[\d.]+$/.test(e) ? e + ' 元/度' : e === '其他' ? oth('elec') : e);
+  const wt = v('water');
+  add('水費/其他費用', /^\d+$/.test(wt) ? wt + ' 元/人' : wt === '其他' ? oth('water') : wt);
+  if (sp.mgmt) add('管理費', sp.mgmt.v === '含租金' ? '含租金' : sp.mgmt.amt !== '' ? (typeof sp.mgmt.amt === 'number' ? fmt(sp.mgmt.amt) + ' 元/月' : sp.mgmt.amt) : '');
+  if (sp.pet) add('寵物', sp.pet.v === '可'
+      ? ([sp.pet.cat ? '可貓' : '', sp.pet.dog ? '可狗' : ''].filter(Boolean).join('、') || '可') + `（寵物清潔費 ${money(sp.pet.clean === '' ? 0 : sp.pet.clean)}、租金 ${plusTxt(sp.pet.plus === '' ? 0 : sp.pet.plus)}）`
+      : sp.pet.v === '禁' ? '禁止' : '');
+  if (sp.wash) add('洗曬', sp.wash.o || ((sp.wash.w || '') + (sp.wash.d || '')));
+  add('陽台', v('balcony'));
+  add('流理台', v('sink'));
+  add('電磁爐', v('induction'));
+  add('管理員/代收包裹', v('guard'));
+  add('乾濕分離', v('dry'));
+  add('子母車', v('trash') === '其他' ? oth('trash') : v('trash'));
+  if (sp.subsidy) add('租屋補助', sp.subsidy.v === '可' ? '可' + (plusTxt(sp.subsidy.plus) ? `（租金 ${plusTxt(sp.subsidy.plus)}）` : '') : sp.subsidy.v === '其他' ? sp.subsidy.o : sp.subsidy.v);
+  add('戶籍', v('household') === '其他' ? oth('household') : v('household'));
+  if (sp.short) add('短租', sp.short.v === '可' ? '可' + (sp.short.m || plusTxt(sp.short.plus) ? '（' + [sp.short.m ? (/^\d+$/.test(String(sp.short.m)) ? sp.short.m + ' 個月起' : sp.short.m) : '', plusTxt(sp.short.plus) ? '租金 ' + plusTxt(sp.short.plus) : ''].filter(Boolean).join('，') + '）' : '') : sp.short.v);
+  if (sp.car) add('汽車位', sp.car.v === '無' ? '無' : sp.car.v + (plusTxt(sp.car.plus) ? `（${plusTxt(sp.car.plus)}${typeof sp.car.plus === 'number' ? ' 元/月' : ''}）` : ''));
+  if (sp.moto && o.cat !== 'studio') add('機車位', sp.moto.v === '有' ? '有' + (sp.moto.kind || plusTxt(sp.moto.plus) ? '（' + [sp.moto.kind, plusTxt(sp.moto.plus) ? plusTxt(sp.moto.plus) + (typeof sp.moto.plus === 'number' ? ' 元/月' : '') : ''].filter(Boolean).join('，') + '）' : '') : sp.moto.v === '其他' ? sp.moto.o : sp.moto.v);
+  return rows;
+}
+
 /* 物件詳細（網址 #編號，可以直接傳給客人） */
 let listScroll = 0;
 function openFromHash(){
@@ -446,15 +526,15 @@ function openFromHash(){
   const meta = [TYPES[o.cat], o._lay].filter(Boolean).join('・');
   $('dvCode').textContent = '物件編號 ' + o.id;
   $('dvIn').innerHTML =
-    `<div class="gal">${ph.length ? `<div class="slides" id="slides">${ph.map((f,i) => `<img src="${esc(photoUrl(o,f))}" alt="照片 ${i+1}" loading="${i<2?'eager':'lazy'}">`).join('')}</div>
+    `<div class="gal2">${ph.length > 1 ? `<div class="thumbs" id="thumbs">${ph.map((f,i) => `<img src="${esc(photoUrl(o,f))}" data-i="${i}" alt="小圖 ${i+1}" loading="lazy"${i===0?' class="on"':''}>`).join('')}</div>` : ''}<div class="gal">${ph.length ? `<div class="slides" id="slides">${ph.map((f,i) => `<img src="${esc(photoUrl(o,f))}" alt="照片 ${i+1}" loading="${i<2?'eager':'lazy'}">`).join('')}</div>
       <span class="cnt2" id="gcnt">1 / ${ph.length}</span>${ph.length > 1 ? '<button class="nav prev" id="gPrev" aria-label="上一張">‹</button><button class="nav next" id="gNext" aria-label="下一張">›</button>' : ''}`
-      : '<div class="nophoto">照片整理中</div>'}</div>
+      : '<div class="nophoto">照片整理中</div>'}</div></div>
     <div class="dv-body">
       <div class="ar">${esc(o.area)}${o.road ? '・' + esc(o.road) : ''}${meta ? '｜' + esc(meta) : ''}</div>
       <h2>${esc(o.title)}</h2>
       <div class="dv-rent">$${fmt(o.rent)}<small> /月</small></div>
-      ${(o.feats||[]).length ? `<div class="fts">${o.feats.map(f => `<span>${esc(f)}</span>`).join('')}</div>` : ''}
-      ${(o.info||[]).length ? `<table class="tbl">${o.info.map(([k,v]) => `<tr><th>${esc(k)}</th><td>${esc(v)}</td></tr>`).join('')}</table>` : ''}
+      ${o._feats.size ? `<div class="fts">${[...o._feats].map(f => `<span>${esc(f)}</span>`).join('')}</div>` : ''}
+      ${(() => { const r = infoRows(o); return r.length ? `<table class="tbl">${r.map(([k,v]) => `<tr><th>${esc(k)}</th><td>${esc(v)}</td></tr>`).join('')}</table>` : ''; })()}
       ${o.desc ? `<div class="desc">${esc(o.desc)}</div>` : ''}
       <div class="ask">想看這間？詢問時請告訴我們物件編號 <b>${esc(o.id)}</b><br><a class="line" href="${LINE_URL}" target="_blank" rel="noopener">LINE 詢問這間</a>
         <div class="phint">詳細地址、看房時間請加 LINE 洽詢。資料以現場為主。</div></div>
@@ -462,7 +542,17 @@ function openFromHash(){
   $('dv').classList.add('open'); $('dv').scrollTop = 0; document.body.classList.add('lock');
   const sl = $('slides');
   if (sl){
-    sl.onscroll = () => { $('gcnt').textContent = `${Math.round(sl.scrollLeft / sl.clientWidth) + 1} / ${ph.length}`; };
+    const th = $('thumbs');
+    sl.onscroll = () => {
+      const i = Math.round(sl.scrollLeft / sl.clientWidth);
+      $('gcnt').textContent = `${i + 1} / ${ph.length}`;
+      if (th){   // 小圖跟著亮、捲到看得到（只捲小圖欄，不動整頁）
+        [...th.children].forEach((x, j) => x.classList.toggle('on', j === i));
+        const t = th.children[i];
+        if (t && (t.offsetTop < th.scrollTop || t.offsetTop + t.offsetHeight > th.scrollTop + th.clientHeight)) th.scrollTop = t.offsetTop - th.clientHeight / 2 + t.offsetHeight / 2;
+      }
+    };
+    if (th) th.onclick = e => { const t = e.target.closest('img'); if (t) sl.scrollTo({left: +t.dataset.i * sl.clientWidth, behavior: 'smooth'}); };
     const go = d => sl.scrollBy({left: d * sl.clientWidth, behavior: 'smooth'});
     if ($('gPrev')){ $('gPrev').onclick = () => go(-1); $('gNext').onclick = () => go(1); }
   }

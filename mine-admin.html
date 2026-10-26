@@ -43,7 +43,17 @@ textarea{min-height:90px;resize:vertical}
 header .ok{color:#c8f2e6}header .err{color:#fecaca}
 .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
 .grid label{font-size:12px;color:var(--mut);display:block}
-.grid .w2{grid-column:span 2}.grid .w4{grid-column:span 4}
+.grid .w2{grid-column:span 2}.grid .w3{grid-column:span 3}.grid .w4{grid-column:span 4}
+.sp{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px dashed var(--line)}
+.sp:last-child{border-bottom:0}
+.sp>b{flex:0 0 118px;font-size:13px;padding-top:6px;color:var(--br)}
+.sp .chips{align-items:center}
+.spx{display:inline-flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:13px;color:var(--mut);margin-left:6px;padding-left:10px;border-left:2px solid var(--line)}
+.chip.sub{background:#f3f8f6;border-style:dashed}
+.chip.sub.on{background:var(--ac);border-style:solid}
+input.mini{width:90px;padding:5px 7px;font-size:14px}
+select.mini2{width:auto;padding:6px 8px;font-size:14px}
+.gear{cursor:pointer;font-size:14px;color:var(--ac)}
 .priv{background:#fff7ed;border:1px dashed #fdba74;border-radius:10px;padding:10px;margin-bottom:12px}
 .priv b{color:#9a3412;font-size:13px}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
@@ -69,12 +79,12 @@ table.pl th{background:var(--cr2);position:sticky;top:0}
 .st-new{color:var(--ac);font-weight:700}.st-update{color:var(--gold);font-weight:700}.st-remove{color:var(--red);font-weight:700}.st-same,.st-skip{color:var(--mut)}
 .prog{height:8px;background:var(--cr2);border-radius:99px;overflow:hidden;margin-top:8px}
 .prog div{height:100%;width:0;background:var(--ac);transition:width .3s}
-@media (max-width:700px){ .grid{grid-template-columns:1fr 1fr} .grid .w4{grid-column:span 2} .it{flex-wrap:wrap} .acts{width:100%} }
+@media (max-width:700px){ .grid{grid-template-columns:1fr 1fr} .grid .w4,.grid .w3{grid-column:span 2} .sp{flex-direction:column;gap:4px} .sp>b{flex:none;padding:0} .it{flex-wrap:wrap} .acts{width:100%} }
 </style>
 </head>
 <body>
 <header><div class="hin">
-  <h1>🏠 自有物件後台 <small style="font-weight:400;opacity:.7">BETA</small></h1>
+  <h1>🏠 自有物件後台 <small style="font-weight:400;opacity:.7">BETA.2</small></h1>
   <span id="hmsg"></span>
   <a href="mine.html" target="_blank">客人頁面 ↗</a>
   <a href="admin.html">精選後台</a>
@@ -159,21 +169,22 @@ table.pl th{background:var(--cr2);position:sticky;top:0}
     </div>
   </div>
   <div class="grid">
-    <div><label>類型</label><select id="fCat2"><option value="studio">套房</option><option value="home">整層住家</option><option value="biz">店面辦公</option></select></div>
+    <div class="w4"><label>類型</label><div class="chips" id="fCatB"></div>
+      <div class="row" id="fLay" style="margin-top:8px;display:none">
+        <select id="fBed" class="mini2"></select><select id="fLiv" class="mini2"></select><select id="fBath" class="mini2"></select><select id="fBalc" class="mini2"></select>
+      </div></div>
     <div><label>區域</label><select id="fArea"></select></div>
-    <div class="w2"><label>客人看到的路名（自動從地址抓，可改）</label><input type="text" id="fRoad"></div>
+    <div class="w3"><label>客人看到的路名（自動從地址抓，可改）</label><input type="text" id="fRoad"></div>
     <div class="w4"><label>標題</label><input type="text" id="fTitle"></div>
     <div><label>租金（元/月）</label><input type="number" id="fRent"></div>
-    <div><label>坪數</label><input type="number" id="fPing" step="0.1"></div>
+    <div><label>坪數 <span class="gear" id="pGear" title="設定自動換算">⚙</span></label><input type="number" id="fPing" step="0.1"></div>
     <div><label>樓層</label><input type="text" id="fFloor"></div>
     <div><label>總樓層</label><input type="text" id="fFloors"></div>
-    <div class="homeOnly"><label>房</label><input type="number" id="fBed" min="0"></div>
-    <div class="homeOnly"><label>廳</label><input type="number" id="fLiv" min="0"></div>
-    <div class="homeOnly"><label>衛</label><input type="number" id="fBath" min="0"></div>
-    <div><label>狀態</label><select id="fSt2"><option value="on">刊登中</option><option value="off">暫停（客人看不到）</option></select></div>
-    <div class="w4"><label>特色（客人可以用來篩選）</label><div class="chips" id="fFeats"></div></div>
-    <div class="w4"><label>詳細資料（一行一項，格式「項目：內容」，例：電費：5元/度）</label><textarea id="fInfo"></textarea></div>
-    <div class="w4"><label>說明（自由寫，客人看得到）</label><textarea id="fDesc"></textarea></div>
+  </div>
+  <div class="box" style="margin-top:12px" id="fSpecBox">
+    <h3>物件資訊</h3>
+    <p>點選；再點一次取消。<b>有選的才會顯示</b>在客人看的詳細資料。</p>
+    <div id="fSpec"></div>
   </div>
   <div class="box" style="margin-top:12px">
     <div class="row"><h3 style="flex:1;margin:0">照片（第一張＝封面）</h3><label class="btn gh sm" style="cursor:pointer">＋ 加入照片<input type="file" id="fPh" accept="image/*" multiple style="display:none"></label></div>
@@ -369,31 +380,116 @@ $('list').onclick = async e => {
 
 /* ---------- 編輯 ---------- */
 $('fArea').innerHTML = DISTRICTS.map(d => `<option>${d}</option>`).join('');
-let ED = null, PH = [], FEATS = new Set();   // PH = [{name}（已上傳） 或 {file, url}（新加的）]
+const opts = (lab, a, b) => `<option value="">${lab}</option>` + Array.from({length: b - a + 1}, (_, i) => `<option value="${a + i}">${a + i}${lab}</option>`).join('');
+$('fBed').innerHTML = opts('房', 1, 6); $('fLiv').innerHTML = opts('廳', 0, 3); $('fBath').innerHTML = opts('衛', 1, 4); $('fBalc').innerHTML = opts('陽台', 0, 3);
+const pingDiv = () => +ls('wow_ping_div') || 1200;
+const pingPh = () => $('fPing').placeholder = `空白＝租金÷${pingDiv()}`;
+$('pGear').onclick = () => {
+  const v = prompt('坪數沒填時，自動用「租金 ÷ 多少」換算？', pingDiv());
+  if (v !== null && +v > 0){ ls('wow_ping_div', String(+v)); pingPh(); }
+};
+/* 物件資訊（點選按鈕）：和 Excel 匯入同一套格式，客人頁面依這些自動顯示詳細資料 */
+const SPEC = [
+  {k:'elec', t:'電費', opts:['台電','台電分算','5','5.5','6','其他'], lab:{'台電分算':'台電分算(新制)','5':'5元','5.5':'5.5元','6':'6元'}},
+  {k:'water', t:'水費/其他費用', opts:['100','150','200','250','其他'], unit:'每人'},
+  {k:'mgmt', t:'管理費', opts:['含租金','金額']},
+  {k:'lift', t:'電梯', opts:['電梯','爬梯']},
+  {k:'trash', t:'子母車', opts:['有','無','其他']},
+  {k:'pet', t:'寵物', opts:['可','禁']},
+  {k:'wash', t:'洗曬', opts:['陽台獨洗','獨洗','共洗','無洗','獨曬','共曬','其他']},
+  {k:'balcony', t:'陽台', opts:['有','無']},
+  {k:'sink', t:'流理台', opts:['有','無']},
+  {k:'induction', t:'電磁爐', opts:['有','無']},
+  {k:'guard', t:'管理員/代收包裹', opts:['有','無']},
+  {k:'dry', t:'乾濕分離', opts:['有','無']},
+  {k:'subsidy', t:'租屋補助', opts:['可','無','其他']},
+  {k:'household', t:'戶籍', opts:['可','無','其他']},
+  {k:'short', t:'可短租', opts:['可','無']},
+  {k:'car', t:'汽車位', opts:['平面','機械','無']},
+  {k:'moto', t:'機車位', opts:['有','無','其他']},
+];
+const WASH_W = ['陽台獨洗','獨洗','共洗','無洗'], WASH_D = ['獨曬','共曬'];
+const NEW_SPEC = k => ({elec:{o:''}, water:{o:''}, trash:{o:''}, household:{o:''}, mgmt:{amt:''}, subsidy:{o:'', plus:''},
+  short:{m:'', plus:''}, car:{plus:''}, moto:{o:'', kind:'', plus:''}, pet:{cat:false, dog:false, clean:0, plus:0}})[k] || {};
+let ED = null, PH = [], CATSEL = 'studio', SP = {}, WASH_OTH = false;   // PH = [{name}（已上傳） 或 {file, url}（新加的）]
+const chip = (k, v, on, label, sub) => `<span class="chip${sub ? ' sub' : ''}${on ? ' on' : ''}" data-k="${k}" data-v="${esc(v)}"${sub ? ' data-sub="1"' : ''}>${esc(label || v)}</span>`;
+const inp = (k, f, val, ph, w) => `<input class="mini" data-k="${k}" data-f="${f}" value="${esc(val ?? '')}" placeholder="${esc(ph)}"${w ? ` style="width:${w}px"` : ''}>`;
+function drawSpec(){
+  $('fSpec').innerHTML = SPEC.map(F => {
+    const k = F.k, c = SP[k] || {};
+    let chips, x = '';
+    if (k === 'wash'){
+      chips = F.opts.map(v => chip(k, v, v === '其他' ? WASH_OTH : (c.w === v || c.d === v))).join('');
+      if (WASH_OTH) x = inp(k, 'o', c.o, '自行輸入', 150);
+    } else {
+      chips = F.opts.map(v => chip(k, v, c.v === v, (F.lab || {})[v])).join('');
+      if (c.v === '其他') x += inp(k, 'o', c.o, '自行輸入', 150);
+      if (k === 'mgmt' && c.v === '金額') x += inp(k, 'amt', c.amt, '元/月');
+      if (k === 'pet' && c.v === '可') x += chip(k, 'cat', c.cat, '可貓', 1) + chip(k, 'dog', c.dog, '可狗', 1) + ' 寵物清潔費 ' + inp(k, 'clean', c.clean, '0') + ' 租金＋' + inp(k, 'plus', c.plus, '0');
+      if (k === 'subsidy' && c.v === '可') x += ' 租金＋' + inp(k, 'plus', c.plus, '例 500 或 5%', 130);
+      if (k === 'short' && c.v === '可') x += ['1','3','6'].map(m => chip(k, 'm' + m, String(c.m) === m, m + '個月', 1)).join('') + ' 租金＋' + inp(k, 'plus', c.plus, '0');
+      if (k === 'car' && (c.v === '平面' || c.v === '機械')) x += ' ＋' + inp(k, 'plus', c.plus, '元/月');
+      if (k === 'moto' && c.v === '有') x += chip(k, 'k室內', c.kind === '室內', '室內', 1) + chip(k, 'k先到先停', c.kind === '先到先停', '先到先停', 1) + ' ＋' + inp(k, 'plus', c.plus, '元/月');
+    }
+    return `<div class="sp"><b>${F.t}</b><div class="chips">${chips}${F.unit ? `<span class="mt">${F.unit}</span>` : ''}${x ? `<span class="spx">${x}</span>` : ''}</div></div>`;
+  }).join('');
+}
+$('fSpec').onclick = e => {
+  const c = e.target.closest('.chip'); if (!c) return;
+  const k = c.dataset.k, v = c.dataset.v;
+  if (c.dataset.sub){
+    const cur = SP[k];
+    if (k === 'pet') cur[v] = !cur[v];
+    if (k === 'short') cur.m = String(cur.m) === v.slice(1) ? '' : +v.slice(1);
+    if (k === 'moto') cur.kind = cur.kind === v.slice(1) ? '' : v.slice(1);
+    return drawSpec();
+  }
+  if (k === 'wash'){
+    const cur = {w: '', d: '', o: '', ...(SP.wash || {})};
+    if (v === '其他'){ WASH_OTH = !WASH_OTH; cur.w = cur.d = ''; if (!WASH_OTH) cur.o = ''; }
+    else {
+      WASH_OTH = false; cur.o = '';
+      if (WASH_W.includes(v)) cur.w = cur.w === v ? '' : v; else cur.d = cur.d === v ? '' : v;
+      if (cur.w === '陽台獨洗') SP.balcony = {v: '有'};   // 陽台獨洗 → 陽台自動選「有」
+    }
+    if (!cur.w && !cur.d && !cur.o && !WASH_OTH) delete SP.wash; else SP.wash = cur;
+    return drawSpec();
+  }
+  if (SP[k] && SP[k].v === v){   // 再點一次＝取消
+    if (k === 'short') SP.short = {v: '無', m: '', plus: ''}; else delete SP[k];
+  } else SP[k] = {v, ...NEW_SPEC(k)};
+  drawSpec();
+};
+$('fSpec').oninput = e => { const t = e.target; if (t.dataset.k && SP[t.dataset.k]) SP[t.dataset.k][t.dataset.f] = t.value; };
+function drawCat(){
+  $('fCatB').innerHTML = [['studio','套房'],['home','住家']].map(([v, t]) => `<span class="chip${CATSEL === v ? ' on' : ''}" data-c="${v}">${t}</span>`).join('')
+    + (CATSEL === 'biz' ? '<span class="mt" style="margin-left:6px">目前是「店面辦公」（Excel 匯入的）</span>' : '');
+  $('fLay').style.display = CATSEL === 'home' ? '' : 'none';
+  $('fSpecBox').style.display = CATSEL === 'biz' ? 'none' : '';
+}
+$('fCatB').onclick = e => { const c = e.target.closest('[data-c]'); if (c){ CATSEL = c.dataset.c; drawCat(); } };
 function openEditor(o){
   ED = o ? JSON.parse(JSON.stringify(o)) : null;
   $('edT').textContent = o ? `編輯 ${o.id}` : '新增物件';
-  $('edFrom').textContent = o && o.from === 'excel' ? '這間是 Excel 匯入的：之後 Excel 有變動、再用匯入或自上架工具更新時，資料會被 Excel 蓋過（你改過的標題和「說明」會保留）。' : '';
-  const v = o || {cat:'studio', area:'北區', status:'on', feats:[], info:[], photos:[]};
+  $('edFrom').textContent = o && o.from === 'excel' ? '這間是 Excel 匯入的：之後 Excel 有變動、再用匯入或自上架工具更新時，資料會被 Excel 蓋過（你改過的標題會保留）。' : '';
+  const v = o || {cat: 'studio', area: '北區', photos: []};
   $('fAddr').value = v.addr || ''; $('fRoom').value = v.room || ''; $('fCo').value = v.company || '';
-  $('fCat2').value = v.cat; $('fArea').value = v.area || '北區'; $('fRoad').value = v.road || ''; delete $('fRoad').dataset.touched;
-  $('fTitle').value = v.title || ''; $('fRent').value = v.rent || ''; $('fPing').value = v.ping ?? '';
+  CATSEL = v.cat || 'studio'; drawCat();
+  $('fArea').value = v.area || '北區'; $('fRoad').value = v.road || ''; delete $('fRoad').dataset.touched;
+  $('fTitle').value = v.title || ''; $('fRent').value = v.rent || '';
+  $('fPing').value = v.ping_auto || v.ping === null || v.ping === undefined ? '' : v.ping; pingPh();
   $('fFloor').value = v.floor || ''; $('fFloors').value = v.floors || '';
-  $('fBed').value = v.bed ?? ''; $('fLiv').value = v.liv ?? ''; $('fBath').value = v.bath ?? '';
-  $('fSt2').value = v.status || 'on';
-  $('fInfo').value = (v.info || []).map(([a, b]) => `${a}：${b}`).join('\n');
-  $('fDesc').value = v.desc || '';
-  FEATS = new Set(v.feats || []); drawFeats();
+  $('fBed').value = v.bed ?? ''; $('fLiv').value = v.liv ?? ''; $('fBath').value = v.bath ?? ''; $('fBalc').value = v.balc ?? '';
+  SP = JSON.parse(JSON.stringify(v.spec || {}));
+  if (!o) SP.short = {v: '無', m: '', plus: ''};   // 可短租預設「無」
+  WASH_OTH = !!(SP.wash && SP.wash.o);
+  drawSpec();
   PH = (v.photos || []).map(name => ({name}));
-  drawPh(); homeOnly(); $('edMsg').textContent = '';
+  drawPh(); $('edMsg').textContent = '';
   $('ed').classList.add('open'); $('ed').scrollTop = 0;
 }
-function homeOnly(){ document.querySelectorAll('.homeOnly').forEach(x => x.style.display = $('fCat2').value === 'home' ? '' : 'none'); }
-$('fCat2').onchange = homeOnly;
 $('fAddr').oninput = () => { if (!ED || !$('fRoad').dataset.touched) $('fRoad').value = roadOf($('fAddr').value); };
 $('fRoad').oninput = () => $('fRoad').dataset.touched = '1';
-function drawFeats(){ $('fFeats').innerHTML = FEAT_ORDER.map(f => `<span class="chip${FEATS.has(f) ? ' on' : ''}" data-f="${f}">${f}</span>`).join(''); }
-$('fFeats').onclick = e => { const c = e.target.closest('.chip'); if (!c) return; const f = c.dataset.f; FEATS.has(f) ? FEATS.delete(f) : FEATS.add(f); drawFeats(); };
 function drawPh(){
   $('fPhs').innerHTML = PH.map((p, i) => `<div class="phc" style="background-image:url('${esc(p.url || photoUrl(ED.id, p.name))}'),url('${esc(p.url || rawUrl(ED.id, p.name))}')">
     ${i === 0 ? '<span class="cv">封面</span>' : ''}${p.file ? '<span class="nw">新</span>' : ''}
@@ -414,24 +510,42 @@ $('fPh').onchange = e => {
   e.target.value = ''; drawPh();
 };
 $('edX').onclick = () => { if (confirm('不儲存直接關閉？')) $('ed').classList.remove('open'); };
+/* 存檔前整理物件資訊：金額轉數字、寵物清潔費／加價沒填＝0 */
+function cleanSpec(){
+  const out = {};
+  for (const F of SPEC){
+    const c = SP[F.k]; if (!c) continue;
+    const o = {...c};
+    for (const f of ['amt','plus','clean']) if (f in o) o[f] = plusv(o[f]);
+    if (F.k === 'pet'){ if (o.clean === '') o.clean = 0; if (o.plus === '') o.plus = 0; if (o.v === '禁'){ o.cat = o.dog = false; o.clean = o.plus = 0; } }
+    if ('o' in o) o.o = s(o.o);
+    if (F.k === 'wash' && !o.w && !o.d && !o.o) continue;
+    if (o.v === '其他' && !o.o) continue;
+    out[F.k] = o;
+  }
+  return out;
+}
 $('edSave').onclick = async () => {
   const b = $('edSave'); b.disabled = true;
   const msg = m => $('edMsg').innerHTML = m;
   try{
     if (!$('fAddr').value.trim()) throw new Error('請填完整地址（客人看不到）');
-    if (!+$('fRent').value) throw new Error('請填租金');
+    const rent = +$('fRent').value;
+    if (!rent) throw new Error('請填租金');
     const used = new Set(ITEMS.map(x => x.id));
     const id = ED ? ED.id : newId(used);
-    const cat = $('fCat2').value;
+    const cat = CATSEL;
+    let ping = $('fPing').value === '' ? null : +$('fPing').value, ping_auto = false;
+    if (ping === null){ ping = Math.round(rent / pingDiv() * 10) / 10; ping_auto = true; }
+    const intv = id => $(id).value === '' ? null : +$(id).value;
     const it = {...(ED || {}), id, cat, area: $('fArea').value, road: $('fRoad').value.trim(),
-      title: $('fTitle').value.trim() || (CAT[cat] + '出租'), rent: +$('fRent').value, ping: $('fPing').value === '' ? null : +$('fPing').value,
+      title: $('fTitle').value.trim() || ((cat === 'home' ? '住家' : CAT[cat]) + '出租'), rent, ping, ping_auto,
       floor: $('fFloor').value.trim(), floors: $('fFloors').value.trim(),
-      bed: cat === 'home' && $('fBed').value !== '' ? +$('fBed').value : null,
-      liv: cat === 'home' && $('fLiv').value !== '' ? +$('fLiv').value : null,
-      bath: cat === 'home' && $('fBath').value !== '' ? +$('fBath').value : null,
-      feats: FEAT_ORDER.filter(f => FEATS.has(f)),
-      info: $('fInfo').value.split('\n').map(l => l.trim()).filter(Boolean).map(l => { const m = l.split(/[：:]/); return [m[0].trim(), m.slice(1).join('：').trim()]; }).filter(x => x[0] && x[1]),
-      desc: $('fDesc').value.trim(), status: $('fSt2').value,
+      bed: cat === 'home' ? intv('fBed') : null, liv: cat === 'home' ? intv('fLiv') : null,
+      bath: cat === 'home' ? intv('fBath') : null, balc: cat === 'home' ? intv('fBalc') : null,
+      spec: cat === 'biz' ? (ED && ED.spec) || {} : cleanSpec(),
+      info: cat === 'biz' ? (ED && ED.info) || [] : [],
+      feats: (ED && ED.feats) || [], desc: (ED && ED.desc) || '', status: (ED && ED.status) || 'on',
       addr: $('fAddr').value.trim(), room: $('fRoom').value.trim(), company: $('fCo').value.trim()};
     if (!ED) { it.from = 'manual'; it.k = ''; }
     if (ED && ED.from === 'excel' && it.title !== ED.title) it.title_lock = true;
@@ -560,16 +674,63 @@ function infoOf(d, cat, bed, liv, bath){
     const r1 = num(d['臨路米']), r2 = num(d['面寬米']); add('臨路', r1 ? `${r1} 米` : ''); add('面寬', r2 ? `${r2} 米` : '');
     add('適合營業', d['適合營業']);
   }
-  add('家具設備', d['家具設備']);
   return out;
 }
-function toListing(d){
+const plusv = x => { const n = num(x); return n !== null ? n : s(x); };
+const WASH_MAP = {'陽台獨洗': {w:'陽台獨洗', d:''}, '獨洗獨曬': {w:'獨洗', d:'獨曬'}, '獨洗共曬': {w:'獨洗', d:'共曬'},
+  '共洗共曬': {w:'共洗', d:'共曬'}, '共洗獨曬': {w:'共洗', d:'獨曬'}, '無': {w:'無洗', d:''}};
+/* Excel 一列 → 物件資訊（和桌面版 core.spec_of 一模一樣，判斷才一致） */
+function specOf(d){
+  const sp = {}, yn = x => (x === '有' || x === '無') ? {v: x} : null;
+  const e = s(d['電費']); let m = e.match(/^([\d.]+)\s*(元\/度)?$/);
+  if (e === '台電' || e === '台電分算') sp.elec = {v: e, o: ''};
+  else if (m && [5, 5.5, 6].includes(num(m[1]))) sp.elec = {v: String(num(m[1])), o: ''};
+  else if (e) sp.elec = {v: '其他', o: e + (/^[\d.]+(\/[\d.]+)?$/.test(e) ? ' 元/度' : '')};
+  const w = s(d['水費']); m = w.match(/^(\d+)\s*\/\s*人$/);
+  if (m && [100, 150, 200, 250].includes(parseInt(m[1], 10))) sp.water = {v: m[1], o: ''};
+  else if (w) sp.water = {v: '其他', o: w};
+  const mf = d['管理費'], mn = num(mf);
+  if (mn) sp.mgmt = {v: '金額', amt: mn};
+  else if (['', '含租金'].includes(s(mf)) || mn === 0) sp.mgmt = {v: '含租金', amt: ''};
+  else sp.mgmt = {v: '金額', amt: s(mf)};
+  const lift = s(d['電梯']); if (lift === '有' || lift === '無') sp.lift = {v: lift === '有' ? '電梯' : '爬梯'};
+  const tr = s(d['子母車']);
+  if (tr === '子母車' || tr === '有') sp.trash = {v: '有', o: ''}; else if (tr === '無') sp.trash = {v: '無', o: ''}; else if (tr) sp.trash = {v: '其他', o: tr};
+  const pet = s(d['寵物']);
+  if (pet === '禁寵') sp.pet = {v: '禁', cat: false, dog: false, clean: 0, plus: 0};
+  else if (['可貓','可狗','可寵'].includes(pet)){ const cl = plusv(d['寵物清潔費']), pl = plusv(d['寵物加價']);
+    sp.pet = {v: '可', cat: pet === '可貓' || pet === '可寵', dog: pet === '可狗' || pet === '可寵', clean: cl !== '' ? cl : 0, plus: pl !== '' ? pl : 0}; }
+  const wa = s(d['洗曬']);
+  if (wa in WASH_MAP) sp.wash = {...WASH_MAP[wa], o: ''}; else if (wa) sp.wash = {w: '', d: '', o: wa};
+  let b = yn(s(d['陽台'])); if (wa === '陽台獨洗') b = {v: '有'}; if (b) sp.balcony = b;
+  for (const [k, col] of [['sink','流理台'],['guard','管理員'],['dry','乾濕分離']]){ const x = yn(s(d[col])); if (x) sp[k] = x; }
+  if (s(d['家具設備']).includes('電磁爐')) sp.induction = {v: '有'};
+  const sub = s(d['租屋補助']);
+  if (sub === '可') sp.subsidy = {v: '可', o: '', plus: plusv(d['租補加價'])};
+  else if (sub === '禁' || sub === '不可') sp.subsidy = {v: '無', o: '', plus: ''};
+  else if (sub) sp.subsidy = {v: '其他', o: sub, plus: ''};
+  const hh = s(d['戶籍']);
+  if (hh === '可') sp.household = {v: '可', o: ''}; else if (hh === '禁' || hh === '不可') sp.household = {v: '無', o: ''}; else if (hh) sp.household = {v: '其他', o: hh};
+  const st = s(d['短租']);
+  if (!st) sp.short = {v: '無', m: '', plus: ''};
+  else { const mm = st.includes('半年') ? 6 : firstInt(st); sp.short = {v: '可', m: mm ? mm : st, plus: ''}; }
+  const car = s(d['汽車位']);
+  if (car === '平面' || car === '機械') sp.car = {v: car, plus: plusv(d['汽車位費用'])}; else if (car === '無') sp.car = {v: '無', plus: ''};
+  const mo = s(d['機車位']);
+  if (mo === '無') sp.moto = {v: '無', o: '', kind: '', plus: ''}; else if (mo) sp.moto = {v: '有', o: '', kind: mo, plus: plusv(d['機車位費用'])};
+  return sp;
+}
+function toListing(d, div = 1200){
   const cat = SHEET_CAT[d._sheet];
   const bed = cat === 'home' ? firstInt(d['幾房']) : null, liv = cat === 'home' ? firstInt(d['幾廳']) : null, bath = cat === 'home' ? firstInt(d['幾衛']) : null;
   const feats = featsOf(d, cat);
+  const rent = num(d['租金']) || 0;
+  let ping = num(d['坪數']), ping_auto = false;
+  if (!ping && rent && div){ ping = Math.round(rent / div * 10) / 10; ping_auto = true; }
   return {cat, area: s(d['區域']), road: roadOf(d['地址']), title: titleOf(cat, feats, d, bed, liv),
-    rent: num(d['租金']) || 0, ping: num(d['坪數']), floor: s(d['樓層']), floors: s(d['總樓層']),
-    bed, liv, bath, feats, info: infoOf(d, cat, bed, liv, bath), desc: '',
+    rent, ping, ping_auto, floor: s(d['樓層']), floors: s(d['總樓層']),
+    bed, liv, bath, balc: cat === 'home' ? firstInt(d['幾陽台']) : null, feats,
+    spec: cat !== 'biz' ? specOf(d) : {}, info: cat === 'biz' ? infoOf(d, cat, bed, liv, bath) : [], desc: '',
     addr: s(d['地址']), room: s(d['房號']), company: s(d['其他公司']), k: rowKey(d), from: 'excel'};
 }
 /* 和 Python json.dumps(ensure_ascii=False, sort_keys=True) 一樣的字串，桌面版和網頁版才會判斷一致 */
@@ -584,7 +745,7 @@ async function sha16(str){
   const h = await crypto.subtle.digest('SHA-1', new TextEncoder().encode(str));
   return [...new Uint8Array(h)].map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 16);
 }
-const SIG_KEYS = ['cat','area','road','title','rent','ping','floor','floors','bed','liv','bath','feats','info','addr','room','company'];
+const SIG_KEYS = ['cat','area','road','title','rent','ping','floor','floors','bed','liv','bath','balc','feats','spec','info','addr','room','company'];
 const dataSig = it => sha16(pyDumps(Object.fromEntries(SIG_KEYS.map(k => [k, it[k] ?? null]))));
 const photoSig = files => files.length ? sha16(files.map(f => `${f.name}:${f.size}`).join('|')) : Promise.resolve('');
 const natKey = x => String(x).split(/(\d+)/).map(t => /^\d+$/.test(t) ? +t : t.toLowerCase());
@@ -685,7 +846,7 @@ $('xLoad').onclick = async () => {
     PLAN = []; const keys = new Set();
     for (const d of rows){
       const k = rowKey(d); if (keys.has(k)) continue; keys.add(k);
-      const site = byK.get(k), it = toListing(d);
+      const site = byK.get(k), it = toListing(d, pingDiv());
       if (s(d['出租']).toUpperCase() === 'X'){ PLAN.push({row: d, item: it, site, files: [], note: '', state: site ? 'remove' : 'skip', on: !!site}); continue; }
       let [files, note] = findPhotos(s(d['區域']), d['地址'], d['房號']);
       files = files.slice(0, maxP);
