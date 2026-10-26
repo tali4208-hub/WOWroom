@@ -84,7 +84,7 @@ table.pl th{background:var(--cr2);position:sticky;top:0}
 </head>
 <body>
 <header><div class="hin">
-  <h1>🏠 自有物件後台 <small style="font-weight:400;opacity:.7">BETA.2</small></h1>
+  <h1>🏠 自有物件後台 <small style="font-weight:400;opacity:.7">BETA.2.1</small></h1>
   <span id="hmsg"></span>
   <a href="mine.html" target="_blank">客人頁面 ↗</a>
   <a href="admin.html">精選後台</a>
@@ -129,8 +129,8 @@ table.pl th{background:var(--cr2);position:sticky;top:0}
          3. 按「比對」→ 勾選要做的 → 「執行勾選項目」。執行中不要關掉這個分頁。</p>
       <p>iPhone 的 HEIC 照片網頁讀不了會略過（用桌面版「自上架工具」可以）。同一個物件已上架、資料沒變的不會重傳。</p>
       <div class="grid">
-        <div class="w2"><label>Excel 檔</label><input type="file" id="xFile" accept=".xlsx"></div>
-        <div class="w2"><label>照片總資料夾</label><input type="file" id="xDir" webkitdirectory multiple></div>
+        <div class="w2"><label>Excel 檔</label><input type="file" id="xFile" accept=".xlsx" autocomplete="off"></div>
+        <div class="w2"><label>照片總資料夾</label><input type="file" id="xDir" webkitdirectory multiple autocomplete="off"><div class="mt" id="xDirN"></div></div>
         <div><label>每間最多幾張照片</label><input type="number" id="xMax" value="12" min="1" max="30"></div>
         <div class="w2" style="display:flex;align-items:flex-end"><button class="btn" id="xLoad">比對</button></div>
       </div>
@@ -821,8 +821,13 @@ function findPhotos(dist, addr, room){
 let PLAN = [], STOP = false, RUNNING = false;
 const STATE = {new:'未上架', update:'需更新', same:'已上架', remove:'已租出→要下架', skip:'已租出'};
 const xlog = m => { const l = $('xLog'); l.textContent += m + '\n'; l.scrollTop = l.scrollHeight; };
+/* 選資料夾當下就把檔案清單存起來（瀏覽器重新整理後，選擇框可能還顯示「N 個檔案」但其實已經是空的） */
+let DIRFILES = [];
+$('xDir').onchange = e => { DIRFILES = [...e.target.files]; $('xDirN').textContent = DIRFILES.length ? `已讀到 ${DIRFILES.length} 個檔案` : ''; };
+window.addEventListener('pageshow', () => { $('xDir').value = ''; $('xFile').value = ''; DIRFILES = []; $('xDirN').textContent = ''; });
 $('xLoad').onclick = async () => {
-  const f = $('xFile').files[0], dir = $('xDir').files;
+  const f = $('xFile').files[0], dir = DIRFILES.length ? DIRFILES : [...$('xDir').files];
+  if (!dir.length) return $('xMsg').innerHTML = '<span class="err">照片資料夾沒有讀到檔案，請按「照片總資料夾」重新選一次（選完下面會顯示「已讀到 N 個檔案」）</span>';
   if (!f) return $('xMsg').innerHTML = '<span class="err">請先選 Excel 檔</span>';
   if (!window.XLSX) return $('xMsg').innerHTML = '<span class="err">Excel 讀取元件還沒載入，請確認網路後重新整理</span>';
   $('xMsg').textContent = '讀取中…';

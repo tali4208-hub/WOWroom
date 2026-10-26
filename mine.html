@@ -90,6 +90,11 @@ button.dd::after{content:"▾";font-size:11px;opacity:.6}
 .dv-top button{border:0;background:rgba(255,255,255,.15);color:#fff;border-radius:8px;padding:8px 12px;font-size:14px;cursor:pointer}
 .dv-top .code{margin-left:auto;font-size:13px;opacity:.85}
 .dv-in{max-width:880px;margin:0 auto;padding:0 0 40px}
+/* 右側小圓圈：LINE 詢問（固定在畫面上，跟著捲動） */
+.lineDot{position:fixed;right:24px;top:84px;z-index:120;width:58px;height:58px;border-radius:50%;background:#06c755;color:#fff;text-decoration:none;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:12px;font-weight:800;line-height:1.15;box-shadow:0 3px 10px rgba(0,0,0,.25)}
+.lineDot small{font-size:10px;font-weight:400}
+.lineDot:active{transform:scale(.95)}
+@media (max-width:760px){ .lineDot{top:auto;bottom:20px;right:16px} }
 .gal2{display:flex;background:#222}
 .thumbs{flex:0 0 96px;display:flex;flex-direction:column;gap:4px;padding:4px;overflow-y:auto;height:min(62vh,520px);scrollbar-width:thin}
 .thumbs img{width:100%;aspect-ratio:4/3;object-fit:cover;flex-shrink:0;cursor:pointer;opacity:.55;border:2px solid transparent;border-radius:4px}
@@ -198,7 +203,7 @@ button.dd::after{content:"▾";font-size:11px;opacity:.6}
 <script>
 /* ===== 設定（只要改這裡）===== */
 const LINE_URL  = 'https://line.me/ti/p/4Kk6A8hKbV';
-const VERSION   = 'BETA.2';
+const VERSION   = 'BETA.2.3';
 const PAGE_SIZE = 50;
 const PHOTO_DIR = 'p';     // 照片在 GitHub 倉庫的 p/物件編號/
 const RENT_SETS = {
@@ -479,7 +484,7 @@ function layText(o){
 }
 function infoRows(o){
   const sp = o.spec, rows = [];
-  const add = (k, v) => { if (v !== '' && v !== null && v !== undefined) rows.push([k, v]); };
+  const add = (k, v) => { if (v !== '' && v !== null && v !== undefined && v !== '無') rows.push([k, v]); };   // 選「無」的不顯示
   add('格局', layText(o));
   const flTxt = o.floor ? o.floor + (/^\d+$/.test(o.floor) ? 'F' : '') + (o.floors ? ` / 共 ${o.floors}F` : '') : '';
   if (!sp || !Object.keys(sp).length){   // 舊資料（店面辦公、BETA 早期上架的）
@@ -538,7 +543,8 @@ function openFromHash(){
       ${o.desc ? `<div class="desc">${esc(o.desc)}</div>` : ''}
       <div class="ask">想看這間？詢問時請告訴我們物件編號 <b>${esc(o.id)}</b><br><a class="line" href="${LINE_URL}" target="_blank" rel="noopener">LINE 詢問這間</a>
         <div class="phint">詳細地址、看房時間請加 LINE 洽詢。資料以現場為主。</div></div>
-    </div>`;
+    </div>
+    <a class="lineDot" href="${LINE_URL}" target="_blank" rel="noopener" title="LINE 詢問（物件編號 ${esc(o.id)}）">LINE<small>詢問</small></a>`;
   $('dv').classList.add('open'); $('dv').scrollTop = 0; document.body.classList.add('lock');
   const sl = $('slides');
   if (sl){
