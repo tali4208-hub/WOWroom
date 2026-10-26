@@ -1,0 +1,791 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>WOW 自有物件後台</title>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{--br:#5b4636;--cr:#f5efe6;--cr2:#ece3d6;--card:#fffdf9;--tx:#2b231c;--mut:#8a7a6b;--ac:#2f7d6d;--line:#e2d7c8;--red:#b91c1c;--gold:#d97706}
+*{box-sizing:border-box}
+body{margin:0;background:var(--cr);color:var(--tx);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft JhengHei","PingFang TC",sans-serif;font-size:15px}
+header{background:var(--br);color:#fff;padding:14px 16px;position:sticky;top:0;z-index:5}
+.hin{max-width:1000px;margin:0 auto;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+header h1{font-size:18px;margin:0;flex:1}
+header a{color:#fff;font-size:13px;opacity:.85}
+.btn{border:0;border-radius:8px;padding:9px 16px;font-size:14px;cursor:pointer;font-weight:700;background:var(--ac);color:#fff}
+.btn:disabled{opacity:.5;cursor:default}
+.btn.gh{background:#fff;color:var(--tx);font-weight:400;border:1px solid var(--line)}
+.btn.red{background:#fff;color:var(--red);border:1px solid #f1c4c4;font-weight:400}
+.btn.sm{padding:6px 10px;font-size:13px}
+.wrap{max-width:1000px;margin:0 auto;padding:14px 16px 60px}
+.box{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
+.box h3{margin:0 0 8px;font-size:15px}
+.box p,.hint{margin:6px 0;font-size:13px;color:var(--mut);line-height:1.6}
+input[type=text],input[type=password],input[type=search],input[type=number],select,textarea{width:100%;padding:9px;border:1px solid var(--line);border-radius:8px;font-size:15px;background:#fff;color:var(--tx);font-family:inherit}
+textarea{min-height:90px;resize:vertical}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.tabs{display:flex;gap:6px;margin:4px 0 12px;flex-wrap:wrap}
+.tab{border:1px solid var(--line);background:#fff;border-radius:999px;padding:7px 16px;cursor:pointer;font-size:14px}
+.tab.on{background:var(--br);color:#fff;border-color:var(--br)}
+.it{display:flex;gap:10px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px;margin-bottom:8px}
+.it.off{opacity:.6}
+.th{width:84px;height:62px;border-radius:6px;background:var(--cr2) center/cover;flex-shrink:0}
+.inf{flex:1;min-width:0}
+.ti{font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mt{font-size:12px;color:var(--mut)}
+.pv{color:#9a3412;font-size:12px}
+.acts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.badge{display:inline-block;font-size:11px;border-radius:5px;padding:1px 6px;margin-right:4px;background:var(--cr2)}
+.badge.on{background:#dcf2ea;color:var(--ac)}.badge.off{background:#f3e8e8;color:var(--red)}
+.ok{color:var(--ac)}.err{color:var(--red)}
+header .ok{color:#c8f2e6}header .err{color:#fecaca}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.grid label{font-size:12px;color:var(--mut);display:block}
+.grid .w2{grid-column:span 2}.grid .w4{grid-column:span 4}
+.priv{background:#fff7ed;border:1px dashed #fdba74;border-radius:10px;padding:10px;margin-bottom:12px}
+.priv b{color:#9a3412;font-size:13px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 11px;font-size:13px;cursor:pointer;user-select:none}
+.chip.on{background:var(--ac);border-color:var(--ac);color:#fff}
+.phs{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;margin-top:8px}
+.phc{position:relative;border-radius:8px;overflow:hidden;background:var(--cr2);aspect-ratio:4/3;background-size:cover;background-position:center}
+.phc .bar{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:space-between;background:rgba(0,0,0,.55)}
+.phc .bar button{border:0;background:none;color:#fff;font-size:15px;padding:4px 8px;cursor:pointer}
+.phc .cv{position:absolute;left:6px;top:6px;background:var(--gold);color:#fff;font-size:11px;border-radius:5px;padding:1px 6px}
+.phc .nw{position:absolute;right:6px;top:6px;background:var(--ac);color:#fff;font-size:11px;border-radius:5px;padding:1px 6px}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:20;display:none;overflow:auto;padding:20px 10px}
+.modal.open{display:block}
+.mbox{max-width:860px;margin:0 auto;background:var(--cr);border-radius:14px;padding:16px}
+.mhead{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.mhead h2{margin:0;font-size:18px;flex:1}
+.log:empty{display:none}
+.log{background:#1f1a16;color:#e8e1d8;font-family:Consolas,monospace;font-size:12px;border-radius:8px;padding:10px;max-height:220px;overflow:auto;white-space:pre-wrap;margin-top:10px}
+table.pl{width:100%;border-collapse:collapse;font-size:13px;background:#fff}
+table.pl th,table.pl td{border-bottom:1px solid var(--line);padding:6px;text-align:left;vertical-align:top}
+table.pl th{background:var(--cr2);position:sticky;top:0}
+.plw{max-height:55vh;overflow:auto;border:1px solid var(--line);border-radius:8px;margin-top:10px}
+.st-new{color:var(--ac);font-weight:700}.st-update{color:var(--gold);font-weight:700}.st-remove{color:var(--red);font-weight:700}.st-same,.st-skip{color:var(--mut)}
+.prog{height:8px;background:var(--cr2);border-radius:99px;overflow:hidden;margin-top:8px}
+.prog div{height:100%;width:0;background:var(--ac);transition:width .3s}
+@media (max-width:700px){ .grid{grid-template-columns:1fr 1fr} .grid .w4{grid-column:span 2} .it{flex-wrap:wrap} .acts{width:100%} }
+</style>
+</head>
+<body>
+<header><div class="hin">
+  <h1>🏠 自有物件後台 <small style="font-weight:400;opacity:.7">BETA</small></h1>
+  <span id="hmsg"></span>
+  <a href="mine.html" target="_blank">客人頁面 ↗</a>
+  <a href="admin.html">精選後台</a>
+</div></header>
+
+<div class="wrap">
+  <div class="box" id="setup" style="display:none">
+    <h3>第一次使用：設定</h3>
+    <p>這三個都只存在這台電腦／手機的瀏覽器裡。如果這台已經在「精選後台」設定過，這裡會自動帶入。</p>
+    <div class="grid">
+      <div class="w4"><label>GitHub 金鑰（存照片用，和精選後台同一組）</label><input type="password" id="sTok" placeholder="github_pat_…"></div>
+      <div class="w4"><label>Cloudflare 後台金鑰（worker.js 最上面 ADMIN_KEY 那串）</label><input type="password" id="sKey"></div>
+      <div class="w4"><label>Cloudflare Worker 網址（後台「收藏統計設定」存過就不用填）</label><input type="text" id="sApi" placeholder="https://wowroom-api.xxx.workers.dev"></div>
+    </div>
+    <div class="row" style="margin-top:10px"><button class="btn" id="sSave">儲存設定</button><span id="sMsg" class="mt"></span></div>
+  </div>
+
+  <div class="tabs">
+    <span class="tab on" data-v="list">物件列表</span>
+    <span class="tab" data-v="new">＋ 新增物件</span>
+    <span class="tab" data-v="xls">Excel 匯入</span>
+  </div>
+
+  <div id="vList">
+    <div class="box">
+      <div class="row">
+        <input type="search" id="q" placeholder="搜尋編號 / 地址 / 標題" style="flex:1;min-width:180px">
+        <select id="fSt" style="width:auto"><option value="">全部狀態</option><option value="on">刊登中</option><option value="off">暫停</option></select>
+        <select id="fCat" style="width:auto"><option value="">全部類型</option><option value="studio">套房</option><option value="home">整層住家</option><option value="biz">店面辦公</option></select>
+        <button class="btn gh sm" id="reload">重新整理</button>
+      </div>
+      <p id="sum"></p>
+    </div>
+    <div id="list"></div>
+  </div>
+
+  <div id="vXls" style="display:none">
+    <div class="box">
+      <h3>從 Excel＋照片資料夾 批次上架</h3>
+      <p>1. 選「物件Excel整理」的 <b>物件資料.xlsx</b>（或匯出的手動輸入 Excel）。只讀，不會改你的檔案。<br>
+         2. 選照片總資料夾（例如 C:\文政\上廣，裡面是 區\地址\房號）。瀏覽器會問「要上傳這些檔案嗎」→ 按上傳（只是讓網頁讀檔名，不會真的全部上傳）。<br>
+         3. 按「比對」→ 勾選要做的 → 「執行勾選項目」。執行中不要關掉這個分頁。</p>
+      <p>iPhone 的 HEIC 照片網頁讀不了會略過（用桌面版「自上架工具」可以）。同一個物件已上架、資料沒變的不會重傳。</p>
+      <div class="grid">
+        <div class="w2"><label>Excel 檔</label><input type="file" id="xFile" accept=".xlsx"></div>
+        <div class="w2"><label>照片總資料夾</label><input type="file" id="xDir" webkitdirectory multiple></div>
+        <div><label>每間最多幾張照片</label><input type="number" id="xMax" value="12" min="1" max="30"></div>
+        <div class="w2" style="display:flex;align-items:flex-end"><button class="btn" id="xLoad">比對</button></div>
+      </div>
+      <p id="xMsg"></p>
+    </div>
+    <div class="box" id="xRes" style="display:none">
+      <div class="row">
+        <select id="xF" style="width:auto">
+          <option value="todo">要處理的（未上架有照片／需更新／要下架）</option>
+          <option value="new">未上架</option><option value="update">需更新</option><option value="remove">已租出→要下架</option>
+          <option value="same">已上架（沒變）</option><option value="nophoto">沒照片的</option><option value="all">全部</option>
+        </select>
+        <select id="xS" style="width:auto"><option value="">全部表</option><option value="物件資料">套房</option><option value="住家">住家</option><option value="店面辦公">店面辦公</option></select>
+        <input type="search" id="xQ" placeholder="搜尋地址" style="flex:1;min-width:140px">
+        <button class="btn gh sm" id="xAll">全選</button><button class="btn gh sm" id="xNone">全不選</button>
+        <button class="btn" id="xRun">執行勾選項目（0）</button>
+        <button class="btn red sm" id="xStop" style="display:none">停止</button>
+      </div>
+      <div class="prog"><div id="xProg"></div></div>
+      <div class="plw"><table class="pl"><thead><tr><th></th><th>狀態</th><th>表</th><th>區／地址／房號</th><th>租金</th><th>照片</th><th>備註</th></tr></thead><tbody id="xBody"></tbody></table></div>
+      <div class="log" id="xLog"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 編輯物件 -->
+<div class="modal" id="ed"><div class="mbox">
+  <div class="mhead"><h2 id="edT">新增物件</h2><button class="btn gh" id="edX">關閉</button><button class="btn" id="edSave">儲存</button></div>
+  <p class="hint" id="edFrom"></p>
+  <div class="priv">
+    <b>🔒 只有後台看得到（客人看不到）</b>
+    <div class="grid" style="margin-top:6px">
+      <div class="w2"><label>完整地址</label><input type="text" id="fAddr" placeholder="例：國光路二段662號"></div>
+      <div><label>房號</label><input type="text" id="fRoom"></div>
+      <div><label>其他公司</label><input type="text" id="fCo"></div>
+    </div>
+  </div>
+  <div class="grid">
+    <div><label>類型</label><select id="fCat2"><option value="studio">套房</option><option value="home">整層住家</option><option value="biz">店面辦公</option></select></div>
+    <div><label>區域</label><select id="fArea"></select></div>
+    <div class="w2"><label>客人看到的路名（自動從地址抓，可改）</label><input type="text" id="fRoad"></div>
+    <div class="w4"><label>標題</label><input type="text" id="fTitle"></div>
+    <div><label>租金（元/月）</label><input type="number" id="fRent"></div>
+    <div><label>坪數</label><input type="number" id="fPing" step="0.1"></div>
+    <div><label>樓層</label><input type="text" id="fFloor"></div>
+    <div><label>總樓層</label><input type="text" id="fFloors"></div>
+    <div class="homeOnly"><label>房</label><input type="number" id="fBed" min="0"></div>
+    <div class="homeOnly"><label>廳</label><input type="number" id="fLiv" min="0"></div>
+    <div class="homeOnly"><label>衛</label><input type="number" id="fBath" min="0"></div>
+    <div><label>狀態</label><select id="fSt2"><option value="on">刊登中</option><option value="off">暫停（客人看不到）</option></select></div>
+    <div class="w4"><label>特色（客人可以用來篩選）</label><div class="chips" id="fFeats"></div></div>
+    <div class="w4"><label>詳細資料（一行一項，格式「項目：內容」，例：電費：5元/度）</label><textarea id="fInfo"></textarea></div>
+    <div class="w4"><label>說明（自由寫，客人看得到）</label><textarea id="fDesc"></textarea></div>
+  </div>
+  <div class="box" style="margin-top:12px">
+    <div class="row"><h3 style="flex:1;margin:0">照片（第一張＝封面）</h3><label class="btn gh sm" style="cursor:pointer">＋ 加入照片<input type="file" id="fPh" accept="image/*" multiple style="display:none"></label></div>
+    <p>上傳前會自動縮小（最長邊 1280）並去掉照片裡的 GPS 位置。<b>門牌、房號照片請不要放</b>，會洩漏地址。</p>
+    <div class="phs" id="fPhs"></div>
+  </div>
+  <p id="edMsg"></p>
+</div></div>
+
+<script>
+/* ===== 設定 ===== */
+const REPO = 'tali4208-hub/WOWroom';
+const BRANCH = 'main';
+const PHOTO_DIR = 'p';
+const MAX_SIDE = 1280, JPEG_Q = 0.75;
+const GH_API = (()=>{ try { return localStorage.getItem('wow_gh_api') || 'https://api.github.com'; } catch(e){ return 'https://api.github.com'; } })();
+/* =============== */
+const DISTRICTS = ['中區','東區','南區','西區','北區','西屯區','南屯區','北屯區','太平區','大里區','霧峰區','烏日區','豐原區','后里區','石岡區','東勢區','和平區','新社區','潭子區','大雅區','神岡區','大肚區','沙鹿區','龍井區','梧棲區','清水區','大甲區','外埔區','大安區'];
+const FEAT_ORDER = ['首月半價','免仲介費','可養貓','可養狗','陽台獨洗','獨洗獨曬','獨洗共曬','電梯','租屋補助','平面車位','機械車位','子母車','管理員','流理台','乾濕分離','飲水機','有陽台','機車位','可戶籍','可報稅','可短租','可營登','可餐飲'];
+const CAT = {studio:'套房', home:'整層住家', biz:'店面辦公'};
+const SHEET_CAT = {'物件資料':'studio', '住家':'home', '店面辦公':'biz'};
+const ID_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ls = (k, v) => { try { if (v === undefined) return localStorage.getItem(k) || ''; localStorage.setItem(k, v); } catch(e){ return ''; } };
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+try { localStorage.setItem('wow_owner', '1'); } catch(e){}   // 這台裝置不計入瀏覽人次、收藏
+
+let API = '', ITEMS = [];
+const tok = () => ls('wow_gh_token'), key = () => ls('wow_fav_key');
+const flash = (m, ok = true) => { $('hmsg').className = ok ? 'ok' : 'err'; $('hmsg').textContent = m; };
+
+/* ---------- 設定 ---------- */
+async function initSettings(){
+  const st = await fetch('settings.json?t=' + Date.now(), {cache:'no-store'}).then(r => r.ok ? r.json() : {}).catch(() => ({}));
+  API = (ls('wow_fav_api') || st.favApi || '').replace(/\/+$/, '');
+  const miss = !tok() || !key() || !API;
+  $('setup').style.display = miss ? '' : 'none';
+  $('sApi').value = API;
+  return !miss;
+}
+$('sSave').onclick = async () => {
+  if ($('sTok').value.trim()) ls('wow_gh_token', $('sTok').value.trim());
+  if ($('sKey').value.trim()) ls('wow_fav_key', $('sKey').value.trim());
+  if ($('sApi').value.trim()) ls('wow_fav_api', $('sApi').value.trim().replace(/\/+$/, ''));
+  if (await initSettings()) loadList(); else $('sMsg').textContent = '還有欄位沒填';
+};
+
+/* ---------- Cloudflare ---------- */
+async function site(method, path, body){
+  for (let t = 0; t < 4; t++){
+    let r;
+    try { r = await fetch(API + path, {method, headers: {'X-Admin-Key': key(), ...(body ? {'Content-Type':'application/json'} : {})}, body: body ? JSON.stringify(body) : undefined}); }
+    catch(e){ if (t === 3) throw new Error('連不到 Cloudflare'); await sleep(1500 * (t + 1)); continue; }
+    if (r.status === 401) throw new Error('Cloudflare 後台金鑰不對');
+    if (r.status === 404 && path.startsWith('/admin')) throw new Error('Cloudflare 的 Worker 還是舊版，請貼上新的 worker.js 再 Deploy');
+    if (r.status >= 500 && t < 3){ await sleep(1500 * (t + 1)); continue; }
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error('Cloudflare 錯誤 ' + r.status + '：' + (j.error || ''));
+    return j;
+  }
+}
+
+/* ---------- GitHub（照片） ---------- */
+let lastBlob = 0;
+async function gh(method, path, body){
+  for (let t = 0; t < 8; t++){
+    let r;
+    try { r = await fetch(GH_API + path, {method, headers: {'Authorization': 'Bearer ' + tok(), 'Accept': 'application/vnd.github+json'}, body: body ? JSON.stringify(body) : undefined}); }
+    catch(e){ if (t >= 5) throw new Error('連不到 GitHub'); await sleep(3000 * (t + 1)); continue; }
+    const j = await r.json().catch(() => ({}));
+    if ((r.status === 403 || r.status === 429) && /rate limit/i.test(j.message || '')){
+      const wait = +(r.headers.get('Retry-After') || 60);
+      xlog(`GitHub 說傳太快，休息 ${wait} 秒再繼續…（每小時大約只收 500 張）`);
+      await sleep(wait * 1000); continue;
+    }
+    if (r.status === 401) throw new Error('GitHub 金鑰不對或過期');
+    if (r.status >= 500 && t < 5){ await sleep(3000 * (t + 1)); continue; }
+    return [r.status, j];
+  }
+  throw new Error('GitHub 一直沒有回應');
+}
+async function blob(bytes){
+  const gap = 800 - (Date.now() - lastBlob); if (gap > 0) await sleep(gap);
+  lastBlob = Date.now();
+  let bin = ''; const u = new Uint8Array(bytes);
+  for (let i = 0; i < u.length; i += 0x8000) bin += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000));
+  const [st, j] = await gh('POST', `/repos/${REPO}/git/blobs`, {content: btoa(bin), encoding: 'base64'});
+  if (st !== 201) throw new Error('照片上傳失敗：' + (j.message || st));
+  return j.sha;
+}
+async function hasFile(path){ const [st] = await gh('GET', `/repos/${REPO}/contents/${path}?ref=${BRANCH}`); return st === 200; }
+async function commit(adds, deletes, message){
+  if (!Object.keys(adds).length && !deletes.length) return;
+  for (let t = 0; t < 3; t++){
+    const [s1, ref] = await gh('GET', `/repos/${REPO}/git/ref/heads/${BRANCH}`);
+    if (s1 !== 200) throw new Error('讀不到 GitHub 分支：' + (ref.message || s1) + '（金鑰要有 WOWroom 的 Contents 讀寫權限）');
+    const head = ref.object.sha;
+    const [, c] = await gh('GET', `/repos/${REPO}/git/commits/${head}`);
+    const tree = Object.entries(adds).map(([path, sha]) => ({path, mode:'100644', type:'blob', sha}))
+      .concat(deletes.filter(p => !(p in adds)).map(path => ({path, mode:'100644', type:'blob', sha:null})));
+    const [s2, tr] = await gh('POST', `/repos/${REPO}/git/trees`, {base_tree: c.tree.sha, tree});
+    if (s2 !== 201){
+      if (deletes.length && t === 0){ const keep = []; for (const p of deletes) if (await hasFile(p)) keep.push(p); deletes = keep; continue; }
+      throw new Error('GitHub 建立檔案清單失敗：' + (tr.message || s2));
+    }
+    const [s3, cm] = await gh('POST', `/repos/${REPO}/git/commits`, {message, tree: tr.sha, parents: [head]});
+    if (s3 !== 201) throw new Error('GitHub commit 失敗：' + (cm.message || s3));
+    const [s4] = await gh('PATCH', `/repos/${REPO}/git/refs/heads/${BRANCH}`, {sha: cm.sha});
+    if (s4 === 200) return cm.sha;
+    await sleep(2000);
+  }
+  throw new Error('GitHub 更新失敗，請稍後再試');
+}
+let needNojekyll = null;
+async function nojekyllAdd(adds){
+  if (needNojekyll === null) needNojekyll = !(await hasFile('.nojekyll'));
+  if (needNojekyll){ adds['.nojekyll'] = await blob(new Uint8Array(0)); needNojekyll = false; }
+}
+
+/* ---------- 照片壓縮（去 GPS） ---------- */
+async function compress(file){
+  const bmp = await createImageBitmap(file, {imageOrientation: 'from-image'});
+  const k = Math.min(1, MAX_SIDE / Math.max(bmp.width, bmp.height));
+  const cv = document.createElement('canvas'); cv.width = Math.round(bmp.width * k); cv.height = Math.round(bmp.height * k);
+  const g = cv.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, cv.width, cv.height); g.drawImage(bmp, 0, 0, cv.width, cv.height);
+  bmp.close && bmp.close();
+  const b = await new Promise(r => cv.toBlob(r, 'image/jpeg', JPEG_Q));   // 重新編碼 → 拍攝資訊（含 GPS）全部拿掉
+  return new Uint8Array(await b.arrayBuffer());
+}
+const rnd = (n, set = 'abcdefghjkmnpqrstuvwxyz23456789') => Array.from({length: n}, () => set[Math.floor(Math.random() * set.length)]).join('');
+function newId(used){ let x; do { x = rnd(6, ID_CHARS); } while (used.has(x)); used.add(x); return x; }
+const photoUrl = (id, f) => `${PHOTO_DIR}/${encodeURIComponent(id)}/${encodeURIComponent(f)}`;
+const rawUrl = (id, f) => `https://raw.githubusercontent.com/${REPO}/${BRANCH}/${PHOTO_DIR}/${encodeURIComponent(id)}/${encodeURIComponent(f)}`;
+
+/* ---------- 分頁 ---------- */
+document.querySelectorAll('.tab').forEach(t => t.onclick = () => {
+  if (t.dataset.v === 'new'){ openEditor(null); return; }
+  document.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x === t));
+  $('vList').style.display = t.dataset.v === 'list' ? '' : 'none';
+  $('vXls').style.display = t.dataset.v === 'xls' ? '' : 'none';
+});
+
+/* ---------- 物件列表 ---------- */
+async function loadList(){
+  try { ITEMS = (await site('GET', '/admin/listings')).items || []; drawList(); flash(''); }
+  catch(e){ flash(e.message, false); $('list').innerHTML = ''; }
+}
+function drawList(){
+  const q = $('q').value.trim().toLowerCase(), fs = $('fSt').value, fc = $('fCat').value;
+  const list = ITEMS.filter(o => (!fs || o.status === fs) && (!fc || o.cat === fc) &&
+    (!q || [o.id, o.addr, o.room, o.title, o.area, o.road, o.company].join(' ').toLowerCase().includes(q)));
+  const on = ITEMS.filter(o => o.status === 'on').length;
+  $('sum').textContent = `共 ${ITEMS.length} 間（刊登中 ${on}、暫停 ${ITEMS.length - on}）｜顯示 ${list.length} 間。新上傳的照片約 1～2 分鐘後客人頁面才看得到。`;
+  $('list').innerHTML = list.map(o => {
+    const cover = o.photos && o.photos[0] ? photoUrl(o.id, o.photos[0]) : '';
+    return `<div class="it${o.status === 'off' ? ' off' : ''}">
+      <div class="th" style="background-image:url('${esc(cover)}'),url('${esc(o.photos && o.photos[0] ? rawUrl(o.id, o.photos[0]) : '')}')"></div>
+      <div class="inf">
+        <div class="ti"><span class="badge ${o.status}">${o.status === 'on' ? '刊登中' : '暫停'}</span>${esc(o.id)}｜${esc(o.title)}</div>
+        <div class="mt">${esc(CAT[o.cat] || '')}・${esc(o.area)}・$${Number(o.rent || 0).toLocaleString()}・${(o.photos || []).length} 張${o.from === 'excel' ? '・Excel 匯入' : ''}</div>
+        <div class="pv">🔒 ${esc(o.addr)} ${esc(o.room)}${o.company ? '（' + esc(o.company) + '）' : ''}</div>
+      </div>
+      <div class="acts">
+        <a class="btn gh sm" href="mine.html#${esc(o.id)}" target="_blank">看</a>
+        <button class="btn gh sm" data-ed="${esc(o.id)}">編輯</button>
+        <button class="btn gh sm" data-st="${esc(o.id)}">${o.status === 'on' ? '暫停' : '恢復刊登'}</button>
+        <button class="btn red sm" data-del="${esc(o.id)}">刪除</button>
+      </div></div>`;
+  }).join('') || '<p class="hint">還沒有物件。按「＋ 新增物件」或用「Excel 匯入」。</p>';
+}
+['q','fSt','fCat'].forEach(id => $(id).oninput = drawList);
+$('reload').onclick = loadList;
+$('list').onclick = async e => {
+  const b = e.target.closest('button'); if (!b) return;
+  const id = b.dataset.ed || b.dataset.st || b.dataset.del;
+  const o = ITEMS.find(x => x.id === id); if (!o) return;
+  if (b.dataset.ed) return openEditor(o);
+  b.disabled = true;
+  try {
+    if (b.dataset.st){
+      await site('POST', '/admin/status', {ids: [id], status: o.status === 'on' ? 'off' : 'on'});
+      flash(`${id} 已${o.status === 'on' ? '暫停' : '恢復刊登'}`);
+    } else {
+      if (!confirm(`確定刪除 ${id}（${o.addr} ${o.room}）？照片也會一起刪掉，無法復原。`)){ b.disabled = false; return; }
+      await site('POST', '/admin/delete', {ids: [id]});
+      if ((o.photos || []).length) await commit({}, o.photos.map(f => `${PHOTO_DIR}/${id}/${f}`), `後台：刪除物件 ${id}`).catch(err => flash('物件已刪，但照片刪除失敗：' + err.message, false));
+      flash(`${id} 已刪除`);
+    }
+    await loadList();
+  } catch(err){ flash(err.message, false); b.disabled = false; }
+};
+
+/* ---------- 編輯 ---------- */
+$('fArea').innerHTML = DISTRICTS.map(d => `<option>${d}</option>`).join('');
+let ED = null, PH = [], FEATS = new Set();   // PH = [{name}（已上傳） 或 {file, url}（新加的）]
+function openEditor(o){
+  ED = o ? JSON.parse(JSON.stringify(o)) : null;
+  $('edT').textContent = o ? `編輯 ${o.id}` : '新增物件';
+  $('edFrom').textContent = o && o.from === 'excel' ? '這間是 Excel 匯入的：之後 Excel 有變動、再用匯入或自上架工具更新時，資料會被 Excel 蓋過（你改過的標題和「說明」會保留）。' : '';
+  const v = o || {cat:'studio', area:'北區', status:'on', feats:[], info:[], photos:[]};
+  $('fAddr').value = v.addr || ''; $('fRoom').value = v.room || ''; $('fCo').value = v.company || '';
+  $('fCat2').value = v.cat; $('fArea').value = v.area || '北區'; $('fRoad').value = v.road || ''; delete $('fRoad').dataset.touched;
+  $('fTitle').value = v.title || ''; $('fRent').value = v.rent || ''; $('fPing').value = v.ping ?? '';
+  $('fFloor').value = v.floor || ''; $('fFloors').value = v.floors || '';
+  $('fBed').value = v.bed ?? ''; $('fLiv').value = v.liv ?? ''; $('fBath').value = v.bath ?? '';
+  $('fSt2').value = v.status || 'on';
+  $('fInfo').value = (v.info || []).map(([a, b]) => `${a}：${b}`).join('\n');
+  $('fDesc').value = v.desc || '';
+  FEATS = new Set(v.feats || []); drawFeats();
+  PH = (v.photos || []).map(name => ({name}));
+  drawPh(); homeOnly(); $('edMsg').textContent = '';
+  $('ed').classList.add('open'); $('ed').scrollTop = 0;
+}
+function homeOnly(){ document.querySelectorAll('.homeOnly').forEach(x => x.style.display = $('fCat2').value === 'home' ? '' : 'none'); }
+$('fCat2').onchange = homeOnly;
+$('fAddr').oninput = () => { if (!ED || !$('fRoad').dataset.touched) $('fRoad').value = roadOf($('fAddr').value); };
+$('fRoad').oninput = () => $('fRoad').dataset.touched = '1';
+function drawFeats(){ $('fFeats').innerHTML = FEAT_ORDER.map(f => `<span class="chip${FEATS.has(f) ? ' on' : ''}" data-f="${f}">${f}</span>`).join(''); }
+$('fFeats').onclick = e => { const c = e.target.closest('.chip'); if (!c) return; const f = c.dataset.f; FEATS.has(f) ? FEATS.delete(f) : FEATS.add(f); drawFeats(); };
+function drawPh(){
+  $('fPhs').innerHTML = PH.map((p, i) => `<div class="phc" style="background-image:url('${esc(p.url || photoUrl(ED.id, p.name))}'),url('${esc(p.url || rawUrl(ED.id, p.name))}')">
+    ${i === 0 ? '<span class="cv">封面</span>' : ''}${p.file ? '<span class="nw">新</span>' : ''}
+    <div class="bar"><button data-mv="${i}" data-d="-1" title="往前">◀</button><button data-rm="${i}" title="移除">✕</button><button data-mv="${i}" data-d="1" title="往後">▶</button></div></div>`).join('')
+    || '<p class="hint">還沒有照片</p>';
+}
+$('fPhs').onclick = e => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.rm !== undefined){ const p = PH.splice(+b.dataset.rm, 1)[0]; if (p.url) URL.revokeObjectURL(p.url); }
+  else { const i = +b.dataset.mv, j = i + +b.dataset.d; if (j >= 0 && j < PH.length) [PH[i], PH[j]] = [PH[j], PH[i]]; }
+  drawPh();
+};
+$('fPh').onchange = e => {
+  for (const f of e.target.files){
+    if (/\.hei[cf]$/i.test(f.name) || /heic|heif/i.test(f.type)){ $('edMsg').innerHTML = '<span class="err">HEIC 照片網頁讀不了，請先轉成 JPG，或用桌面版自上架工具</span>'; continue; }
+    PH.push({file: f, url: URL.createObjectURL(f)});
+  }
+  e.target.value = ''; drawPh();
+};
+$('edX').onclick = () => { if (confirm('不儲存直接關閉？')) $('ed').classList.remove('open'); };
+$('edSave').onclick = async () => {
+  const b = $('edSave'); b.disabled = true;
+  const msg = m => $('edMsg').innerHTML = m;
+  try{
+    if (!$('fAddr').value.trim()) throw new Error('請填完整地址（客人看不到）');
+    if (!+$('fRent').value) throw new Error('請填租金');
+    const used = new Set(ITEMS.map(x => x.id));
+    const id = ED ? ED.id : newId(used);
+    const cat = $('fCat2').value;
+    const it = {...(ED || {}), id, cat, area: $('fArea').value, road: $('fRoad').value.trim(),
+      title: $('fTitle').value.trim() || (CAT[cat] + '出租'), rent: +$('fRent').value, ping: $('fPing').value === '' ? null : +$('fPing').value,
+      floor: $('fFloor').value.trim(), floors: $('fFloors').value.trim(),
+      bed: cat === 'home' && $('fBed').value !== '' ? +$('fBed').value : null,
+      liv: cat === 'home' && $('fLiv').value !== '' ? +$('fLiv').value : null,
+      bath: cat === 'home' && $('fBath').value !== '' ? +$('fBath').value : null,
+      feats: FEAT_ORDER.filter(f => FEATS.has(f)),
+      info: $('fInfo').value.split('\n').map(l => l.trim()).filter(Boolean).map(l => { const m = l.split(/[：:]/); return [m[0].trim(), m.slice(1).join('：').trim()]; }).filter(x => x[0] && x[1]),
+      desc: $('fDesc').value.trim(), status: $('fSt2').value,
+      addr: $('fAddr').value.trim(), room: $('fRoom').value.trim(), company: $('fCo').value.trim()};
+    if (!ED) { it.from = 'manual'; it.k = ''; }
+    if (ED && ED.from === 'excel' && it.title !== ED.title) it.title_lock = true;
+    // 照片：新的壓縮上傳、移除的刪掉
+    const adds = {}, names = [];
+    const news = PH.filter(p => p.file).length;
+    let n = 0;
+    for (const p of PH){
+      if (p.file){
+        msg(`照片處理中 ${++n} / ${news}…`);
+        const nm = `${String(names.length + 1).padStart(2, '0')}_${rnd(4)}.jpg`;
+        adds[`${PHOTO_DIR}/${id}/${nm}`] = await blob(await compress(p.file));
+        names.push(nm);
+      } else names.push(p.name);
+    }
+    const dels = ((ED && ED.photos) || []).filter(f => !names.includes(f)).map(f => `${PHOTO_DIR}/${id}/${f}`);
+    if (Object.keys(adds).length || dels.length){
+      msg('照片存到 GitHub…'); await nojekyllAdd(adds);
+      await commit(adds, dels, `後台：${ED ? '更新' : '新增'}物件 ${id}`);
+    }
+    it.photos = names;
+    msg('存到 Cloudflare…');
+    await site('POST', '/admin/save', {item: it});
+    PH.forEach(p => p.url && URL.revokeObjectURL(p.url));
+    $('ed').classList.remove('open');
+    flash(`✓ ${id} 已儲存${news ? '（新照片約 1～2 分鐘後客人看得到）' : ''}`);
+    await loadList();
+  } catch(e){ msg('<span class="err">' + esc(e.message) + '</span>'); }
+  b.disabled = false;
+};
+
+/* ====================================================================
+   Excel 匯入（規則和桌面版「自上架工具」一樣）
+   ==================================================================== */
+const s = v => v === null || v === undefined ? '' : String(v).trim();
+function stripAddr(v){
+  v = String(v || '').replace(/^\s*(台中市|臺中市)/, '').trim();
+  let dist = '';
+  for (const d of DISTRICTS) if (v.startsWith(d)){ dist = d; v = v.slice(d.length); break; }
+  return [dist, v.replace(/[（(][^）)]*[）)]/g, '').trim()];
+}
+const normAddr = x => String(x || '').replace(/\s+/g, '').replace(/[-－]/g, '之').replace(/臺/g, '台').toUpperCase();
+const roomKey = x => stripAddr(String(x ?? ''))[1].replace(/[\s_\-－]+/g, '').toUpperCase();
+const nameBase = n => String(n).trim().split(/[\s(（]/)[0];
+function addrKeyOfFolder(n){
+  let v = String(n).replace(/^\s*(台中市|臺中市)/, '').trim();
+  for (const d of DISTRICTS) if (v.startsWith(d)){ v = v.slice(d.length); break; }
+  return normAddr(nameBase(v));
+}
+function roomList(n){
+  const parts = nameBase(n).split(/[-－‐–—―~～_＿、,，/／.．]+/).filter(x => x.trim()).map(roomKey);
+  if (parts.length >= 3) return parts;
+  if (parts.length === 2 && parts[0].length >= 2 && parts[0].length === parts[1].length) return parts;
+  return [];
+}
+const roomExact = (n, rk) => roomKey(nameBase(n)) === rk || roomList(n).includes(rk);
+function roomMatch(n, rk){
+  if (roomExact(n, rk)) return true;
+  const m = String(n).match(/[（(]\s*([0-9A-Za-z]+)\s*房?\s*同房型/);
+  if (m){ const suf = m[1].toUpperCase(); return rk.endsWith(suf) && rk.length > suf.length; }
+  return false;
+}
+function roadOf(addr){
+  const a = stripAddr(s(addr))[1];
+  const m = a.match(/^(.+?(?:路|街|大道))([一二三四五六七八九十]段)?/);
+  if (!m){ const m2 = a.match(/^([^\d０-９]{1,6}巷)/); return m2 ? m2[1] : ''; }
+  const road = m[1] + (m[2] || '');
+  return road.length <= 12 ? road : '';
+}
+function num(v){
+  if (v === null || v === undefined || v === '') return null;
+  const f = Number(String(v).replace(/,/g, ''));
+  if (!isFinite(f)) return null;
+  return Number.isInteger(f) ? f : Math.round(f * 100) / 100;
+}
+const firstInt = v => { const m = s(v).match(/\d+/); return m ? parseInt(m[0], 10) : null; };
+const money = v => { const n = num(v); return n !== null ? n.toLocaleString('en-US') + ' 元' : s(v); };
+const rowKey = d => [s(d._sheet), s(d['區域']), normAddr(stripAddr(s(d['地址']))[1]), roomKey(d['房號']), s(d['其他公司'])].join('|');
+function featsOf(d, cat){
+  const f = new Set(), yes = k => s(d[k]) === '有';
+  const pet = s(d['寵物']);
+  if (pet === '可貓' || pet === '可寵') f.add('可養貓');
+  if (pet === '可狗' || pet === '可寵') f.add('可養狗');
+  const wash = s(d['洗曬']); if (['陽台獨洗','獨洗獨曬','獨洗共曬'].includes(wash)) f.add(wash);
+  if (yes('陽台')) f.add('有陽台'); if (yes('電梯')) f.add('電梯'); if (yes('管理員')) f.add('管理員');
+  if (['子母車','有'].includes(s(d['子母車']))) f.add('子母車');
+  if (s(d['租屋補助']) === '可') f.add('租屋補助');
+  for (const k of ['飲水機','流理台','乾濕分離']) if (yes(k)) f.add(k);
+  if (['先到先停','固定','免費','另計'].includes(s(d['機車位']))) f.add('機車位');
+  const car = s(d['汽車位']); if (car === '平面') f.add('平面車位'); else if (car === '機械') f.add('機械車位');
+  if (s(d['戶籍']) === '可') f.add('可戶籍'); if (s(d['報稅']) === '可') f.add('可報稅');
+  const promo = s(d['優惠']); if (promo.includes('免仲')) f.add('免仲介費'); if (promo.includes('半價')) f.add('首月半價');
+  if (s(d['短租'])) f.add('可短租');
+  if (cat === 'biz'){ if (s(d['營登報稅']).startsWith('可')) f.add('可營登'); if (['可','輕食'].includes(s(d['餐飲']))) f.add('可餐飲'); }
+  return FEAT_ORDER.filter(x => f.has(x));
+}
+function titleOf(cat, feats, d, bed, liv){
+  let tags = [...feats];
+  if (tags.includes('可養貓') && tags.includes('可養狗')){ const i = tags.indexOf('可養貓'); tags = tags.filter(t => t !== '可養貓' && t !== '可養狗'); tags.splice(i, 0, '可寵'); }
+  tags = tags.map(t => ({'可養貓':'可貓','可養狗':'可狗'})[t] || t);
+  tags = tags.filter(t => !['有陽台','可戶籍','可報稅','機車位','飲水機'].includes(t));
+  const head = [];
+  if (cat === 'home' && bed) head.push(`${bed}房${liv || 0}廳`);
+  if (cat === 'biz' && s(d['店面格局'])) head.push(s(d['店面格局']));
+  return [...head, ...tags.slice(0, 5 - head.length)].join('・') || (CAT[cat] + '出租');
+}
+function infoOf(d, cat, bed, liv, bath){
+  const out = [], add = (k, v) => { if (s(v)) out.push([k, s(v)]); };
+  const p = num(d['坪數']); add('坪數', p !== null ? `${p} 坪` : '');
+  const fl = s(d['樓層']), tot = s(d['總樓層']);
+  if (fl) add('樓層', fl + (/^\d+$/.test(fl) ? 'F' : '') + (tot ? ` / 共 ${tot}F` : ''));
+  if (cat === 'home' && bed) add('格局', `${bed}房${liv || 0}廳${bath || 0}衛`);
+  if (cat === 'biz') add('店面格局', d['店面格局']);
+  let e = s(d['電費']); if (/^[\d.]+(\/[\d.]+)?$/.test(e)) e += ' 元/度'; add('電費', e);
+  add('水費', d['水費']);
+  const mf = d['管理費']; add('管理費', num(mf) ? money(mf) : s(mf));
+  add('其他費用', d['其他費用']);
+  const pet = s(d['寵物']);
+  if (pet){ const pc = d['寵物清潔費']; add('寵物', pet + (s(pc) ? `（寵物清潔費 ${money(pc)}）` : '')); }
+  if (cat !== 'biz'){ add('洗曬', s(d['洗曬']) !== '無' ? d['洗曬'] : ''); add('租屋補助', d['租屋補助']); add('戶籍', d['戶籍']); }
+  const mc = s(d['機車位']); if (mc) add('機車位', mc + (s(d['機車位費用']) ? `（${money(d['機車位費用'])}）` : ''));
+  const cc = s(d['汽車位']); if (cc && cc !== '無') add('汽車位', cc + (s(d['汽車位費用']) ? `（${money(d['汽車位費用'])}）` : ''));
+  add('短租', d['短租']); add('抽菸', d['菸']); add('優惠', d['優惠']);
+  if (cat === 'biz'){
+    add('營登報稅', d['營登報稅']); add('餐飲', d['餐飲']);
+    const r1 = num(d['臨路米']), r2 = num(d['面寬米']); add('臨路', r1 ? `${r1} 米` : ''); add('面寬', r2 ? `${r2} 米` : '');
+    add('適合營業', d['適合營業']);
+  }
+  add('家具設備', d['家具設備']);
+  return out;
+}
+function toListing(d){
+  const cat = SHEET_CAT[d._sheet];
+  const bed = cat === 'home' ? firstInt(d['幾房']) : null, liv = cat === 'home' ? firstInt(d['幾廳']) : null, bath = cat === 'home' ? firstInt(d['幾衛']) : null;
+  const feats = featsOf(d, cat);
+  return {cat, area: s(d['區域']), road: roadOf(d['地址']), title: titleOf(cat, feats, d, bed, liv),
+    rent: num(d['租金']) || 0, ping: num(d['坪數']), floor: s(d['樓層']), floors: s(d['總樓層']),
+    bed, liv, bath, feats, info: infoOf(d, cat, bed, liv, bath), desc: '',
+    addr: s(d['地址']), room: s(d['房號']), company: s(d['其他公司']), k: rowKey(d), from: 'excel'};
+}
+/* 和 Python json.dumps(ensure_ascii=False, sort_keys=True) 一樣的字串，桌面版和網頁版才會判斷一致 */
+function pyDumps(v){
+  if (v === null || v === undefined) return 'null';
+  if (Array.isArray(v)) return '[' + v.map(pyDumps).join(', ') + ']';
+  if (typeof v === 'object') return '{' + Object.keys(v).sort().map(k => JSON.stringify(k) + ': ' + pyDumps(v[k])).join(', ') + '}';
+  if (typeof v === 'number') return Number.isInteger(v) ? String(v) : String(v);
+  return JSON.stringify(v);
+}
+async function sha16(str){
+  const h = await crypto.subtle.digest('SHA-1', new TextEncoder().encode(str));
+  return [...new Uint8Array(h)].map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 16);
+}
+const SIG_KEYS = ['cat','area','road','title','rent','ping','floor','floors','bed','liv','bath','feats','info','addr','room','company'];
+const dataSig = it => sha16(pyDumps(Object.fromEntries(SIG_KEYS.map(k => [k, it[k] ?? null]))));
+const photoSig = files => files.length ? sha16(files.map(f => `${f.name}:${f.size}`).join('|')) : Promise.resolve('');
+const natKey = x => String(x).split(/(\d+)/).map(t => /^\d+$/.test(t) ? +t : t.toLowerCase());
+function natCmp(a, b){
+  const A = natKey(a), B = natKey(b);
+  for (let i = 0; i < Math.min(A.length, B.length); i++){
+    if (A[i] === B[i]) continue;
+    if (typeof A[i] === typeof B[i]) return A[i] < B[i] ? -1 : 1;
+    return typeof A[i] === 'number' ? -1 : 1;
+  }
+  return A.length - B.length;
+}
+const IMG_RE = /\.(jpe?g|png|webp)$/i;
+
+/* 照片資料夾索引：上廣/區/地址/(房號/...)/檔案 */
+let PIDX = null;
+function buildIndex(fileList){
+  const idx = new Map();   // "區|地址key" → [{dirs: Map(子路徑 → [File])}]
+  const addrs = new Map(); // 地址資料夾完整路徑 → 物件
+  for (const f of fileList){
+    const parts = (f.webkitRelativePath || '').split('/');
+    if (parts.length < 4) continue;
+    const ap = parts.slice(0, 3).join('/');
+    let a = addrs.get(ap);
+    if (!a){
+      const dist = DISTRICTS.find(d => parts[1].includes(d)) || parts[1];
+      a = {dist, key: addrKeyOfFolder(parts[2]), files: []};
+      addrs.set(ap, a);
+      const k = dist + '|' + a.key; if (!idx.has(k)) idx.set(k, []); idx.get(k).push(a);
+    }
+    a.files.push({sub: parts.slice(3, -1), name: parts[parts.length - 1], file: f});
+  }
+  return {idx, all: [...addrs.values()]};
+}
+function pickImages(entries){
+  // 依資料夾（上層的檔案先）→ 檔名自然排序；同大小視為重複
+  const sorted = entries.filter(e => IMG_RE.test(e.name) && !e.name.startsWith('~$')).sort((x, y) => {
+    const a = x.sub, b = y.sub;
+    for (let i = 0; i < Math.min(a.length, b.length); i++){ const c = natCmp(a[i], b[i]); if (c) return c; }
+    if (a.length !== b.length) return a.length - b.length;
+    return natCmp(x.name, y.name);
+  });
+  const seen = new Set(), out = [];
+  for (const e of sorted){ if (seen.has(e.file.size)) continue; seen.add(e.file.size); out.push(e.file); }
+  return out;
+}
+function findPhotos(dist, addr, room){
+  const a = normAddr(stripAddr(s(addr))[1]);
+  if (!a) return [[], '沒有地址'];
+  const rk = roomKey(room);
+  let aps = PIDX.idx.get(dist + '|' + a) || [];
+  if (!aps.length) aps = PIDX.all.filter(x => x.key === a);
+  if (!aps.length) return [[], '找不到地址資料夾'];
+  if (!rk){
+    for (const ap of aps){ const fs = pickImages(ap.files); if (fs.length) return [fs, aps.length > 1 ? '有重複的地址資料夾' : '']; }
+    return [[], '地址資料夾沒有照片'];
+  }
+  const hits = [];
+  for (const ap of aps){
+    const subdirs = new Map();   // 子資料夾路徑（深度 ≤4）
+    for (const e of ap.files) for (let i = 1; i <= Math.min(e.sub.length, 4); i++){ const k = e.sub.slice(0, i).join('/'); if (!subdirs.has(k)) subdirs.set(k, e.sub[i - 1]); }
+    for (const [path, nm] of subdirs){
+      if (!roomMatch(nm, rk)) continue;
+      const fs = pickImages(ap.files.filter(e => e.sub.slice(0, path.split('/').length).join('/') === path).map(e => ({...e, sub: e.sub.slice(path.split('/').length)})));
+      if (fs.length) hits.push([roomExact(nm, rk), fs.length, fs]);
+    }
+  }
+  if (!hits.length) return [[], '僅地址（找不到這個房號的資料夾）'];
+  hits.sort((x, y) => (y[0] - x[0]) || (y[1] - x[1]));
+  return [hits[0][2], hits[0][0] ? '' : '用同房型的照片'];
+}
+
+let PLAN = [], STOP = false, RUNNING = false;
+const STATE = {new:'未上架', update:'需更新', same:'已上架', remove:'已租出→要下架', skip:'已租出'};
+const xlog = m => { const l = $('xLog'); l.textContent += m + '\n'; l.scrollTop = l.scrollHeight; };
+$('xLoad').onclick = async () => {
+  const f = $('xFile').files[0], dir = $('xDir').files;
+  if (!f) return $('xMsg').innerHTML = '<span class="err">請先選 Excel 檔</span>';
+  if (!window.XLSX) return $('xMsg').innerHTML = '<span class="err">Excel 讀取元件還沒載入，請確認網路後重新整理</span>';
+  $('xMsg').textContent = '讀取中…';
+  try{
+    const wb = XLSX.read(await f.arrayBuffer(), {type: 'array'});
+    const rows = [];
+    for (const name of wb.SheetNames){
+      if (!(name in SHEET_CAT)) continue;
+      const aoa = XLSX.utils.sheet_to_json(wb.Sheets[name], {header: 1, raw: true, defval: null});
+      const hdr = (aoa[0] || []).map(s);
+      aoa.slice(1).forEach((r, i) => {
+        const d = {}; hdr.forEach((h, j) => { if (h) d[h] = r[j]; });
+        if (!s(d['地址'])) return;
+        d._sheet = name; d._row = i + 2; rows.push(d);
+      });
+    }
+    PIDX = buildIndex(dir || []);
+    await loadList();
+    const byK = new Map(); ITEMS.forEach(it => { if (it.k && !byK.has(it.k)) byK.set(it.k, it); });
+    const maxP = Math.max(1, +$('xMax').value || 12);
+    PLAN = []; const keys = new Set();
+    for (const d of rows){
+      const k = rowKey(d); if (keys.has(k)) continue; keys.add(k);
+      const site = byK.get(k), it = toListing(d);
+      if (s(d['出租']).toUpperCase() === 'X'){ PLAN.push({row: d, item: it, site, files: [], note: '', state: site ? 'remove' : 'skip', on: !!site}); continue; }
+      let [files, note] = findPhotos(s(d['區域']), d['地址'], d['房號']);
+      files = files.slice(0, maxP);
+      it.sig = await dataSig(it); it.psig = await photoSig(files);
+      const st = !site ? 'new' : (site.sig !== it.sig || site.psig !== it.psig) ? 'update' : 'same';
+      PLAN.push({row: d, item: it, site, files, note, state: st, on: (st === 'new' && files.length > 0) || st === 'update'});
+    }
+    const c = {}; PLAN.forEach(t => c[t.state] = (c[t.state] || 0) + 1);
+    $('xMsg').innerHTML = `讀到 ${rows.length} 列、照片資料夾 ${dir.length} 個檔案。` + Object.entries(c).map(([k, v]) => `${STATE[k]} ${v}`).join('、');
+    $('xRes').style.display = ''; drawPlan();
+  } catch(e){ $('xMsg').innerHTML = '<span class="err">' + esc(e.message) + '</span>'; }
+};
+function planShown(){
+  const f = $('xF').value, sh = $('xS').value, q = $('xQ').value.trim();
+  return PLAN.filter(t => (!sh || t.row._sheet === sh) && (!q || (s(t.row['地址']) + s(t.row['房號'])).includes(q)) && (
+    f === 'all' ? true : f === 'todo' ? ((t.state === 'new' && t.files.length) || t.state === 'update' || t.state === 'remove')
+    : f === 'nophoto' ? (t.state === 'new' && !t.files.length) : t.state === f));
+}
+function drawPlan(){
+  const list = planShown();
+  $('xBody').innerHTML = list.slice(0, 1500).map(t => { const i = PLAN.indexOf(t), d = t.row;
+    return `<tr><td>${t.state === 'same' || t.state === 'skip' ? '' : `<input type="checkbox" data-i="${i}"${t.on ? ' checked' : ''}>`}</td>
+      <td class="st-${t.state}">${STATE[t.state]}</td><td>${esc(d._sheet)}</td>
+      <td>${esc(d['區域'])} ${esc(d['地址'])} ${esc(d['房號'] ?? '')}${s(d['其他公司']) ? '（' + esc(d['其他公司']) + '）' : ''}</td>
+      <td>${Number(num(d['租金']) || 0).toLocaleString()}</td><td>${t.files.length || '—'}</td><td class="mt">${esc(t.note)}</td></tr>`; }).join('')
+    + (list.length > 1500 ? `<tr><td colspan="7" class="mt">只顯示前 1500 列，請用上面的篩選縮小範圍</td></tr>` : '');
+  $('xRun').textContent = `執行勾選項目（${PLAN.filter(t => t.on).length}）`;
+}
+['xF','xS','xQ'].forEach(id => $(id).oninput = drawPlan);
+$('xBody').onchange = e => { const i = e.target.dataset.i; if (i !== undefined){ PLAN[+i].on = e.target.checked; $('xRun').textContent = `執行勾選項目（${PLAN.filter(t => t.on).length}）`; } };
+$('xAll').onclick = () => { planShown().forEach(t => { if (t.state !== 'same' && t.state !== 'skip') t.on = true; }); drawPlan(); };
+$('xNone').onclick = () => { planShown().forEach(t => t.on = false); drawPlan(); };
+$('xStop').onclick = () => { STOP = true; xlog('停止中…（做完目前這間就停）'); };
+window.addEventListener('beforeunload', e => { if (RUNNING){ e.preventDefault(); e.returnValue = ''; } });
+
+$('xRun').onclick = async () => {
+  const tasks = PLAN.filter(t => t.on && ['new','update','remove'].includes(t.state));
+  if (!tasks.length) return;
+  if (!confirm(`要執行 ${tasks.length} 間？\n照片越多越久（GitHub 每小時大約只收 500 張），執行中不要關掉分頁。`)) return;
+  RUNNING = true; STOP = false; $('xRun').disabled = true; $('xStop').style.display = ''; $('xLog').textContent = '';
+  let done = 0, fail = 0; const total = tasks.length;
+  const prog = n => $('xProg').style.width = Math.round(n / total * 100) + '%';
+  try{
+    const used = new Set(ITEMS.map(x => x.id));
+    const [s0, repo] = await gh('GET', `/repos/${REPO}`);
+    if (s0 === 200){ const mb = Math.round(repo.size / 102.4) / 10; xlog(`GitHub 倉庫目前 ${mb} MB（上限約 1000 MB）`); if (mb > 980) throw new Error('GitHub 倉庫快滿了，請先下架一些物件'); }
+    // 1. 已租出 → 刪掉
+    const rm = tasks.filter(t => t.state === 'remove'); let dels = [];
+    for (const t of rm){
+      try { await site('POST', '/admin/delete', {ids: [t.site.id]}); dels.push(...(t.site.photos || []).map(f => `${PHOTO_DIR}/${t.site.id}/${f}`));
+        xlog(`✓ 已下架（租出）：${t.site.id} ${t.site.addr} ${t.site.room}`); t.state = 'skip'; t.on = false; t.site = null; done++; }
+      catch(e){ xlog(`✗ 下架失敗 ${t.item.addr}：${e.message}`); fail++; }
+      prog(done + fail);
+    }
+    if (dels.length) await commit({}, dels, `後台匯入：刪除 ${rm.length} 間已租出的照片`).catch(e => xlog('（照片刪除失敗，不影響網站）' + e.message));
+    // 2. 新增／更新：每 10 間 commit 一次
+    let adds = {}, pdels = [], pending = [];
+    const flush = async () => {
+      if (!pending.length) return;
+      await nojekyllAdd(adds);
+      try { await commit(adds, pdels, `後台匯入：更新 ${pending.length} 間物件照片`); }
+      catch(e){ xlog('✗ 照片存到 GitHub 失敗：' + e.message); fail += pending.length; adds = {}; pdels = []; pending = []; return; }
+      for (const [t, it] of pending){
+        try { await site('POST', '/admin/save', {item: it}); done++; xlog(`✓ ${t.state === 'new' ? '已上架' : '已更新'}：${it.id} ${it.area} ${it.addr} ${it.room}（${it.photos.length} 張）`); t.state = 'same'; t.on = false; t.site = it; }
+        catch(e){ fail++; xlog(`✗ ${it.addr} ${it.room}：${e.message}`); }
+      }
+      adds = {}; pdels = []; pending = [];
+    };
+    for (const t of tasks.filter(t => t.state === 'new' || t.state === 'update')){
+      if (STOP) break;
+      const old = t.site || {};
+      const it = {...t.item, id: old.id || newId(used), status: old.status || 'on', desc: old.desc || ''};
+      if (old.title_lock){ it.title = old.title; it.title_lock = true; }
+      if (old.id && old.psig === it.psig) it.photos = old.photos || [];
+      else {
+        const names = [];
+        try {
+          for (const [i, f] of t.files.entries()){
+            const nm = `${String(i + 1).padStart(2, '0')}_${rnd(4)}.jpg`;
+            adds[`${PHOTO_DIR}/${it.id}/${nm}`] = await blob(await compress(f)); names.push(nm);
+            if (STOP) break;
+          }
+        } catch(e){ xlog(`✗ 照片處理失敗 ${it.addr} ${it.room}：${e.message}`); fail++; prog(done + fail); continue; }
+        if (STOP && names.length < t.files.length) break;
+        pdels.push(...(old.photos || []).map(f => `${PHOTO_DIR}/${it.id}/${f}`));
+        it.photos = names;
+      }
+      pending.push([t, it]);
+      if (pending.length >= 10) await flush();
+      prog(done + fail + pending.length);
+    }
+    await flush();
+    xlog(`完成：成功 ${done}、失敗 ${fail}${STOP ? '（已停止）' : ''}。新照片約 1～2 分鐘後客人頁面看得到。`);
+  } catch(e){ xlog('✗ ' + e.message); }
+  prog(total); RUNNING = false; $('xRun').disabled = false; $('xStop').style.display = 'none';
+  await loadList(); drawPlan();
+};
+
+/* 開始 */
+initSettings().then(ok => { if (ok) loadList(); });
+</script>
+</body>
+</html>

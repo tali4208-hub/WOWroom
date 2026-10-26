@@ -1,0 +1,479 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WOW 台中租屋｜自有物件</title>
+<meta name="description" content="台中套房、整層住家、店面辦公出租，依區域、租金、格局、特色快速搜尋。">
+<style>
+:root{--br:#5b4636;--br2:#7a5f49;--cr:#f5efe6;--cr2:#ece3d6;--card:#fffdf9;--tx:#2b231c;--mut:#8a7a6b;--ac:#2f7d6d;--line:#e2d7c8}
+*{box-sizing:border-box}
+body{margin:0;background:var(--cr);color:var(--tx);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft JhengHei","PingFang TC",sans-serif;font-size:15px}
+body.lock{overflow:hidden}
+a{color:inherit}
+.hero{background:var(--br);color:#fff;padding:22px 16px 26px}
+.hero-in{max-width:1080px;margin:0 auto}
+.brand{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.brand h1{margin:0;font-size:22px;letter-spacing:1px}
+.brand h1 span{font-weight:400;opacity:.8;font-size:15px;margin-left:6px}
+.line{background:#06c755;color:#fff;text-decoration:none;border-radius:8px;padding:8px 14px;font-weight:700;font-size:14px;white-space:nowrap}
+.sbox{margin-top:16px;display:flex;background:#fff;border-radius:10px;overflow:hidden}
+.sbox input{flex:1;border:0;padding:14px;font-size:16px;outline:none;min-width:0;color:var(--tx)}
+.sub{margin-top:10px;font-size:12px;opacity:.75}
+
+.bar{position:sticky;top:0;z-index:20;background:var(--card);border-bottom:1px solid var(--line)}
+.bar-in{max-width:1080px;margin:0 auto;padding:10px 16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff}
+.seg button{border:0;background:none;padding:8px 12px;font-size:14px;cursor:pointer;color:var(--tx);border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0}
+.seg button.on{background:var(--ac);color:#fff;font-weight:700}
+.dd{border:1px solid var(--line);background:#fff;border-radius:8px;padding:8px 12px;font-size:14px;cursor:pointer;color:var(--tx);display:inline-flex;gap:6px;align-items:center}
+.dd.act{border-color:var(--ac);color:var(--ac);font-weight:700}
+button.dd::after{content:"▾";font-size:11px;opacity:.6}
+.clr{border:0;background:none;color:var(--ac);font-size:14px;cursor:pointer;padding:8px 4px;text-decoration:underline}
+.panel{display:none;max-width:1080px;margin:0 auto;padding:4px 16px 16px;max-height:70vh;overflow:auto}
+.panel.open{display:block}
+.pg{margin-top:12px}
+.pg-h{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--br);margin-bottom:6px}
+.pg-h button{border:0;background:none;color:var(--ac);font-size:12px;cursor:pointer;padding:0}
+.pg-h em{font-weight:400;font-style:normal;color:var(--mut)}
+.ck{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:4px 10px}
+.ck label{display:flex;align-items:center;gap:6px;font-size:14px;padding:4px 0;cursor:pointer}
+.ck label.no{opacity:.35;cursor:default}
+.ck em{font-style:normal;color:var(--mut);font-size:12px}
+.ck input{accent-color:var(--ac);width:16px;height:16px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 12px;font-size:14px;cursor:pointer;user-select:none}
+.chip em{font-style:normal;color:var(--mut);font-size:12px;margin-left:3px}
+.chip.on{background:var(--ac);border-color:var(--ac);color:#fff}
+.chip.on em{color:#d7efe9}
+.phint{font-size:12px;color:var(--mut);margin-top:10px}
+.rl{display:flex;flex-direction:column;gap:2px;max-width:360px}
+.rl label{display:flex;align-items:center;gap:8px;padding:6px 0;font-size:14px;cursor:pointer}
+.rl input{accent-color:var(--ac)}
+.rc{display:flex;gap:8px;align-items:center;margin-top:8px;max-width:360px}
+.rc input{flex:1;min-width:0;padding:9px;border:1px solid var(--line);border-radius:8px;font-size:15px}
+.pf{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}
+.pbtn{border:0;border-radius:8px;padding:9px 16px;font-size:14px;cursor:pointer;background:var(--ac);color:#fff;font-weight:700}
+.pbtn.gh{background:var(--cr2);color:var(--tx);font-weight:400}
+
+.wrap{max-width:1080px;margin:0 auto;padding:14px 16px 90px}
+.cnt{font-size:16px;color:var(--br);margin-right:6px}
+.rowi{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:12px}
+.info{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:14px}
+.tag{background:var(--cr2);border-radius:6px;padding:3px 8px;font-size:13px;cursor:pointer}
+.tag::after{content:" ✕";opacity:.5}
+.list{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.item{display:flex;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;text-decoration:none;min-height:130px;cursor:pointer}
+.item:hover{border-color:var(--br2)}
+.ph{width:42%;max-width:200px;flex-shrink:0;background:var(--cr2) center/cover no-repeat;position:relative}
+.ph .n{position:absolute;right:6px;bottom:6px;background:rgba(0,0,0,.55);color:#fff;font-size:11px;border-radius:6px;padding:2px 6px}
+.ib{padding:10px 12px;display:flex;flex-direction:column;gap:4px;min-width:0;flex:1}
+.ar{font-size:12px;color:var(--ac);font-weight:700}
+.ti{font-size:15px;font-weight:700;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.mt{font-size:12px;color:var(--mut);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pr{margin-top:auto;font-size:18px;font-weight:800;color:var(--br)}
+.pr small{font-size:12px;font-weight:400;color:var(--mut)}
+.msg{padding:40px 10px;text-align:center;color:var(--mut)}
+.pager{display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:6px;margin:22px 0 4px}
+.pager button{min-width:40px;height:40px;padding:0 12px;border:1px solid var(--line);background:#fff;border-radius:8px;font-size:15px;cursor:pointer;color:var(--tx)}
+.pager button.on{background:var(--ac);border-color:var(--ac);color:#fff;font-weight:700}
+.pager button:disabled{opacity:.4;cursor:default}
+.pager .dots{color:var(--mut);padding:0 2px}
+.pinfo{text-align:center;font-size:13px;color:var(--mut)}
+.toTop{position:fixed;right:16px;bottom:20px;z-index:50;width:52px;height:52px;border-radius:50%;border:0;background:var(--br);color:#fff;font-size:13px;font-weight:700;line-height:1.1;cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,.25)}
+
+/* 物件詳細 */
+.dv{position:fixed;inset:0;z-index:100;background:var(--cr);overflow:auto;display:none}
+.dv.open{display:block}
+.dv-top{position:sticky;top:0;z-index:2;background:var(--br);color:#fff;display:flex;align-items:center;gap:10px;padding:10px 16px}
+.dv-top button{border:0;background:rgba(255,255,255,.15);color:#fff;border-radius:8px;padding:8px 12px;font-size:14px;cursor:pointer}
+.dv-top .code{margin-left:auto;font-size:13px;opacity:.85}
+.dv-in{max-width:880px;margin:0 auto;padding:0 0 40px}
+.gal{position:relative;background:#222}
+.slides{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.slides::-webkit-scrollbar{display:none}
+.slides img{flex:0 0 100%;width:100%;height:min(62vh,520px);object-fit:contain;scroll-snap-align:center;background:#222}
+.gal .cnt2{position:absolute;right:10px;bottom:10px;background:rgba(0,0,0,.6);color:#fff;font-size:12px;border-radius:6px;padding:3px 8px}
+.gal .nav{position:absolute;top:50%;transform:translateY(-50%);width:40px;height:40px;border-radius:50%;border:0;background:rgba(255,255,255,.85);font-size:18px;cursor:pointer}
+.gal .prev{left:10px}.gal .next{right:10px}
+.nophoto{height:200px;display:flex;align-items:center;justify-content:center;color:#ccc}
+.dv-body{padding:16px}
+.dv-body h2{margin:6px 0 8px;font-size:20px;line-height:1.4}
+.dv-rent{font-size:26px;font-weight:800;color:var(--br)}
+.dv-rent small{font-size:14px;font-weight:400;color:var(--mut)}
+.fts{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}
+.fts span{background:#e3f0ec;color:var(--ac);border-radius:6px;padding:4px 9px;font-size:13px}
+.tbl{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-top:6px}
+.tbl th,.tbl td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);font-size:14px;vertical-align:top}
+.tbl th{width:96px;color:var(--mut);font-weight:400;white-space:nowrap}
+.tbl tr:last-child th,.tbl tr:last-child td{border-bottom:0}
+.desc{white-space:pre-wrap;line-height:1.7;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:12px;font-size:14px}
+.ask{margin-top:16px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;text-align:center}
+.ask .line{display:inline-block;margin-top:10px;font-size:16px;padding:12px 26px}
+.ask b{color:var(--br);font-size:18px;letter-spacing:2px}
+@media (max-width:760px){
+  .list{grid-template-columns:1fr}
+  .brand h1 span{display:none}
+  .ph{width:38%}
+  .seg{width:100%}
+  .seg button{flex:1;padding:8px 4px}
+  .bar-in{gap:6px}
+  .dd{padding:8px 9px}
+  #sort{max-width:118px;padding:7px 6px;flex-shrink:0}
+  .gal .nav{display:none}
+  .slides img{height:62vw;max-height:60vh}
+}
+</style>
+</head>
+<body>
+<section class="hero"><div class="hero-in">
+  <div class="brand">
+    <h1>WOW 台中租屋<span>自有物件</span></h1>
+    <a class="line" id="lineBtn" target="_blank" rel="noopener">LINE 詢問</a>
+  </div>
+  <div class="sbox"><input type="search" id="q" placeholder="輸入路名、關鍵字或物件編號"></div>
+  <div class="sub" id="stat">物件讀取中…</div>
+</div></section>
+
+<div class="bar">
+  <div class="bar-in">
+    <div class="seg" id="types">
+      <button data-t="" class="on">全部</button>
+      <button data-t="studio">套房</button>
+      <button data-t="home">整層住家</button>
+      <button data-t="biz">店面辦公</button>
+    </div>
+    <button class="dd" id="bArea" data-p="pArea">區域</button>
+    <button class="dd" id="bRent" data-p="pRent">租金</button>
+    <button class="dd" id="bLay" data-p="pLay" style="display:none">格局</button>
+    <button class="dd" id="bKw" data-p="pKw">特色</button>
+    <button class="clr" id="clrAll">清除</button>
+  </div>
+  <div class="panel" id="pArea">
+    <div id="areas"></div>
+    <div class="pf"><button class="pbtn gh" id="clrArea">清除</button><button class="pbtn" data-close>看結果</button></div>
+  </div>
+  <div class="panel" id="pRent">
+    <div class="rl" id="rents"></div>
+    <div class="rc"><input type="number" id="minR" placeholder="最低" inputmode="numeric"> ～ <input type="number" id="maxR" placeholder="最高" inputmode="numeric"></div>
+    <div class="pf"><button class="pbtn gh" id="clrRent">清除</button><button class="pbtn" data-close>看結果</button></div>
+  </div>
+  <div class="panel" id="pLay">
+    <div id="lays"></div>
+    <div class="phint">可複選。數字是目前條件下符合的間數。</div>
+    <div class="pf"><button class="pbtn gh" id="clrLay">清除</button><button class="pbtn" data-close>看結果</button></div>
+  </div>
+  <div class="panel" id="pKw">
+    <div class="chips" id="kws"></div>
+    <div class="phint">可複選；選多個＝要同時符合。數字是目前條件下符合的間數。實際以現場為主，可直接加 LINE 詢問。</div>
+    <div class="pf"><button class="pbtn gh" id="clrKw">清除</button><button class="pbtn" data-close>看結果</button></div>
+  </div>
+</div>
+
+<main class="wrap">
+  <div class="rowi"><div class="info" id="info"></div><select class="dd" id="sort">
+      <option value="new">推薦</option>
+      <option value="low">租金 低→高</option>
+      <option value="high">租金 高→低</option>
+    </select></div>
+  <div class="list" id="list"></div>
+  <div class="msg" id="msg">物件讀取中…</div>
+  <div class="pager" id="pager"></div>
+  <div class="pinfo" id="pinfo"></div>
+  <div style="text-align:center;font-size:12px;color:var(--mut);margin-top:24px">WOW 台中租屋 <span id="ver"></span></div>
+</main>
+<button class="toTop" id="toTop" aria-label="回到最上面">▲<br>TOP</button>
+
+<div class="dv" id="dv">
+  <div class="dv-top"><button id="dvBack">← 返回列表</button><span class="code" id="dvCode"></span></div>
+  <div class="dv-in" id="dvIn"></div>
+</div>
+
+<script>
+/* ===== 設定（只要改這裡）===== */
+const LINE_URL  = 'https://line.me/ti/p/4Kk6A8hKbV';
+const VERSION   = 'BETA';
+const PAGE_SIZE = 50;
+const PHOTO_DIR = 'p';     // 照片在 GitHub 倉庫的 p/物件編號/
+const RENT_SETS = {
+  '':     [['不限',0,1e9],['6,000 以下',0,5999],['6,000 – 7,999',6000,7999],['8,000 – 9,999',8000,9999],['10,000 – 14,999',10000,14999],['15,000 – 19,999',15000,19999],['20,000 以上',20000,1e9]],
+  home:   [['不限',0,1e9],['20,000 以下',0,19999],['20,000 – 24,999',20000,24999],['25,000 – 29,999',25000,29999],['30,000 – 34,999',30000,34999],['35,000 – 39,999',35000,39999],['40,000 以上',40000,1e9]],
+  biz:    [['不限',0,1e9],['20,000 以下',0,19999],['20,000 – 29,999',20000,29999],['30,000 – 49,999',30000,49999],['50,000 – 99,999',50000,99999],['100,000 以上',100000,1e9]],
+};
+RENT_SETS.studio = RENT_SETS[''];
+/* ============================ */
+
+const GROUPS = [
+  ['市區',['中區','東區','西區','南區','北區','西屯區','南屯區','北屯區']],
+  ['屯區',['大里區','太平區','霧峰區','烏日區']],
+  ['山線',['豐原區','后里區','石岡區','東勢區','和平區','新社區','潭子區','大雅區','神岡區']],
+  ['海線',['沙鹿區','梧棲區','清水區','大甲區','外埔區','大安區','龍井區','大肚區']],
+];
+const TYPES = {studio:'套房', home:'整層住家', biz:'店面辦公'};
+const FEAT_ORDER = ['首月半價','免仲介費','可養貓','可養狗','陽台獨洗','獨洗獨曬','獨洗共曬','電梯','租屋補助','平面車位','機械車位','子母車','管理員','流理台','乾濕分離','飲水機','有陽台','機車位','可戶籍','可報稅','可短租','可營登','可餐飲'];
+let RENTS = RENT_SETS[''];
+let ALL = [], selAreas = new Set(), selKw = new Set(), selLay = new Set(), rentPreset = 0, selType = '';
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = n => Number(n).toLocaleString();
+const photoUrl = (o, f) => `${PHOTO_DIR}/${encodeURIComponent(o.id)}/${encodeURIComponent(f)}`;
+const layOf = o => o.cat === 'home' && o.bed ? `${o.bed}房${o.liv || 0}廳` : '';
+const bedGroup = b => b >= 4 ? '4房以上' : b + '房';
+
+$('lineBtn').href = LINE_URL;
+$('ver').textContent = VERSION;
+
+/* 面板 */
+document.querySelectorAll('.bar-in .dd[data-p]').forEach(b => b.onclick = () => {
+  const p = $(b.dataset.p), open = p.classList.contains('open');
+  document.querySelectorAll('.panel').forEach(x => x.classList.remove('open'));
+  if (!open) p.classList.add('open');
+});
+document.querySelectorAll('[data-close]').forEach(b => b.onclick = () => {
+  document.querySelectorAll('.panel').forEach(x => x.classList.remove('open'));
+  window.scrollTo({top: $('list').offsetTop - 140, behavior: 'smooth'});
+});
+
+/* 讀資料：從 Cloudflare 讀（網址在 settings.json 的 favApi）；地址不會傳到這裡 */
+async function load(){
+  try{
+    const st = await fetch('settings.json?t=' + Date.now(), {cache:'no-store'}).then(r => r.ok ? r.json() : {}).catch(() => ({}));
+    const api = (st.favApi || '').replace(/\/+$/, '');
+    if (!api) throw new Error('no api');
+    let j;
+    for (let t = 0; t < 4; t++){
+      try { const r = await fetch(api + '/listings'); if (r.ok){ j = await r.json(); break; } } catch(e){}
+      await new Promise(r => setTimeout(r, 800 * (t + 1)));
+    }
+    if (!j) throw new Error('load');
+    ALL = (j.items || []).filter(o => o && o.id);
+    ALL.forEach(o => {
+      o._ord = Math.random();
+      o._lay = layOf(o);
+      o._feats = new Set(o.feats || []);
+      o._text = [o.id, o.title, o.area, o.road, TYPES[o.cat], ...(o.feats || [])].join(' ').toLowerCase();
+    });
+    const d = new Date();
+    $('stat').textContent = `目前 ${ALL.length} 間刊登中｜資料更新 ${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    if (!ALL.length) $('msg').textContent = '目前沒有刊登中的物件，歡迎加 LINE 詢問。';
+    render();
+    openFromHash();
+  }catch(e){
+    $('msg').innerHTML = '物件暫時讀取失敗，請稍後重新整理，或直接 <a href="'+LINE_URL+'" target="_blank">加 LINE 詢問</a>。';
+    $('stat').textContent = '讀取失敗';
+  }
+}
+
+/* 類型 */
+$('types').onclick = e => {
+  const b = e.target.closest('button'); if (!b) return;
+  selType = b.dataset.t;
+  [...$('types').children].forEach(x => x.classList.toggle('on', x === b));
+  RENTS = RENT_SETS[selType]; rentPreset = 0; $('minR').value=''; $('maxR').value=''; buildRent();
+  $('bLay').style.display = selType === 'home' ? '' : 'none';
+  if (selType !== 'home'){ selLay.clear(); $('pLay').classList.remove('open'); }
+  render();
+};
+
+/* 租金 */
+function buildRent(){
+  $('rents').innerHTML = RENTS.map((r,i)=>`<label><input type="radio" name="rent" value="${i}"${rentPreset===i?' checked':''}>${r[0]}</label>`).join('');
+}
+$('rents').onchange = e => { rentPreset = +e.target.value; $('minR').value=''; $('maxR').value=''; render(); };
+['minR','maxR'].forEach(id => $(id).oninput = () => { rentPreset = -1; buildRent(); render(); });
+$('clrRent').onclick = () => { rentPreset = 0; $('minR').value=''; $('maxR').value=''; buildRent(); render(); };
+function rentRange(){
+  if (rentPreset >= 0) return [RENTS[rentPreset][1], RENTS[rentPreset][2]];
+  return [$('minR').value ? +$('minR').value : 0, $('maxR').value ? +$('maxR').value : 1e9];
+}
+
+/* 區域 */
+function buildAreas(base){
+  const cnt = {}; base.forEach(o => { cnt[o.area] = (cnt[o.area]||0) + 1; });
+  $('areas').innerHTML = GROUPS.map(([g, list]) =>
+    `<div class="pg"><div class="pg-h">${g}<em>${list.reduce((s,a)=>s+(cnt[a]||0),0)}間</em><button data-g="${g}">全選</button></div><div class="ck">` +
+    list.map(a => { const on = selAreas.has(a), n = cnt[a]||0;
+      return `<label class="${n||on?'':'no'}"><input type="checkbox" value="${a}"${on?' checked':''}${n||on?'':' disabled'}>${a}<em>${n}</em></label>`; }).join('') +
+    `</div></div>`).join('');
+}
+$('areas').onchange = e => { const a = e.target.value; e.target.checked ? selAreas.add(a) : selAreas.delete(a); render(); };
+$('areas').onclick = e => {
+  const g = e.target.closest('[data-g]'); if (!g) return;
+  const list = GROUPS.find(x=>x[0]===g.dataset.g)[1].filter(a => ALL.some(o=>o.area===a));
+  const allOn = list.every(a => selAreas.has(a));
+  list.forEach(a => allOn ? selAreas.delete(a) : selAreas.add(a));
+  render();
+};
+$('clrArea').onclick = () => { selAreas.clear(); render(); };
+
+/* 格局（整層住家） */
+function buildLay(base){
+  const cnt = {}; base.forEach(o => { if (o._lay) cnt[o._lay] = (cnt[o._lay]||0) + 1; });
+  const all = new Map();
+  ALL.forEach(o => { if (o._lay && !all.has(o._lay)) all.set(o._lay, [o.bed, o.liv || 0]); });
+  const keys = [...all.keys()].sort((a,b) => all.get(a)[0] - all.get(b)[0] || all.get(a)[1] - all.get(b)[1]);
+  const groups = []; keys.forEach(k => { const g = bedGroup(all.get(k)[0]); let x = groups.find(y => y[0] === g); if (!x) groups.push(x = [g, []]); x[1].push(k); });
+  $('lays').innerHTML = groups.map(([g, list]) =>
+    `<div class="pg"><div class="pg-h">${g}<em>${list.reduce((s,k)=>s+(cnt[k]||0),0)}間</em><button data-lg="${g}">全選</button></div><div class="ck">` +
+    list.map(k => { const on = selLay.has(k), n = cnt[k]||0;
+      return `<label class="${n||on?'':'no'}"><input type="checkbox" value="${k}"${on?' checked':''}${n||on?'':' disabled'}>${k}<em>${n}</em></label>`; }).join('') +
+    `</div></div>`).join('') || '<div class="phint">目前沒有整層住家物件</div>';
+}
+$('lays').onchange = e => { const k = e.target.value; e.target.checked ? selLay.add(k) : selLay.delete(k); render(); };
+$('lays').onclick = e => {
+  const g = e.target.closest('[data-lg]'); if (!g) return;
+  const list = [...new Set(ALL.filter(o => o._lay && bedGroup(o.bed) === g.dataset.lg).map(o => o._lay))];
+  const allOn = list.every(k => selLay.has(k));
+  list.forEach(k => allOn ? selLay.delete(k) : selLay.add(k));
+  render();
+};
+$('clrLay').onclick = () => { selLay.clear(); render(); };
+
+/* 特色（依資料自動產生） */
+function buildKw(base){
+  const cnt = {}; base.forEach(o => o._feats.forEach(f => cnt[f] = (cnt[f]||0) + 1));
+  const names = [...new Set([...FEAT_ORDER.filter(f => cnt[f] || selKw.has(f)), ...Object.keys(cnt).filter(f => !FEAT_ORDER.includes(f))])];
+  $('kws').innerHTML = names.map(f => `<span class="chip${selKw.has(f)?' on':''}" data-k="${esc(f)}">${esc(f)}<em>${cnt[f]||0}</em></span>`).join('')
+    || '<span class="phint">目前條件下沒有特色可選</span>';
+}
+$('kws').onclick = e => {
+  const c = e.target.closest('.chip'); if (!c) return;
+  const f = c.dataset.k; selKw.has(f) ? selKw.delete(f) : selKw.add(f); render();
+};
+$('clrKw').onclick = () => { selKw.clear(); render(); };
+
+$('clrAll').onclick = () => {
+  selType = ''; [...$('types').children].forEach(x => x.classList.toggle('on', x.dataset.t === ''));
+  RENTS = RENT_SETS['']; rentPreset = 0; $('minR').value=''; $('maxR').value=''; buildRent();
+  selAreas.clear(); selKw.clear(); selLay.clear(); $('q').value = '';
+  $('bLay').style.display = 'none';
+  document.querySelectorAll('.panel').forEach(x => x.classList.remove('open'));
+  render();
+};
+$('q').oninput = render;
+$('sort').onchange = render;
+$('info').onclick = e => {
+  const t = e.target.closest('.tag'); if (!t) return;
+  if (t.dataset.a) selAreas.delete(t.dataset.a);
+  if (t.dataset.k) selKw.delete(t.dataset.k);
+  if (t.dataset.l) selLay.delete(t.dataset.l);
+  if (t.dataset.r) { rentPreset = 0; $('minR').value=''; $('maxR').value=''; buildRent(); }
+  if (t.dataset.q) $('q').value = '';
+  render();
+};
+
+let PAGE = 1;
+function render(){ PAGE = 1; draw(); }
+function goPage(p){ PAGE = p; draw(); window.scrollTo({top: 0, behavior: 'smooth'}); }
+$('toTop').onclick = () => window.scrollTo({top: 0, behavior: 'smooth'});
+$('pager').onclick = e => { const b = e.target.closest('button[data-p]'); if (b && !b.disabled) goPage(+b.dataset.p); };
+
+function draw(){
+  if (!ALL.length) return;
+  const q = $('q').value.trim();
+  const words = q.toLowerCase().split(/\s+/).filter(Boolean);
+  const [lo, hi] = rentRange();
+  const okQ = o => words.every(w => o._text.includes(w));
+  const okT = o => !selType || o.cat === selType;
+  const okR = o => o.rent >= lo && o.rent <= hi;
+  const okA = o => !selAreas.size || selAreas.has(o.area);
+  const okK = o => [...selKw].every(f => o._feats.has(f));
+  const okL = o => !selLay.size || selLay.has(o._lay);
+
+  buildAreas(ALL.filter(o => okQ(o) && okT(o) && okR(o) && okK(o) && okL(o)));
+  buildKw(ALL.filter(o => okQ(o) && okT(o) && okR(o) && okA(o) && okL(o)));
+  if (selType === 'home') buildLay(ALL.filter(o => okQ(o) && okT(o) && okR(o) && okA(o) && okK(o)));
+
+  let list = ALL.filter(o => okQ(o) && okT(o) && okR(o) && okA(o) && okK(o) && okL(o));
+  const s = $('sort').value;
+  if (s === 'new') list.sort((a,b) => a._ord - b._ord);
+  else list.sort((a,b) => s === 'low' ? a.rent - b.rent : b.rent - a.rent);
+
+  const rentOn = rentPreset !== 0;
+  const rentLbl = rentPreset > 0 ? RENTS[rentPreset][0] : `${lo?fmt(lo):'0'} – ${hi<1e9?fmt(hi):'不限'}`;
+  $('bArea').classList.toggle('act', selAreas.size > 0);
+  $('bArea').textContent = selAreas.size ? `區域(${selAreas.size})` : '區域';
+  $('bRent').classList.toggle('act', rentOn);
+  $('bRent').textContent = rentOn ? `租金 ${rentLbl}` : '租金';
+  $('bLay').classList.toggle('act', selLay.size > 0);
+  $('bLay').textContent = selLay.size ? `格局(${selLay.size})` : '格局';
+  $('bKw').classList.toggle('act', selKw.size > 0);
+  $('bKw').textContent = selKw.size ? `特色(${selKw.size})` : '特色';
+
+  $('info').innerHTML = `<b class="cnt">找到 ${list.length} 間</b>` +
+    (q ? `<span class="tag" data-q="1">「${esc(q)}」</span>` : '') +
+    [...selAreas].map(a => `<span class="tag" data-a="${esc(a)}">${esc(a)}</span>`).join('') +
+    (rentOn ? `<span class="tag" data-r="1">${rentLbl}</span>` : '') +
+    [...selLay].map(k => `<span class="tag" data-l="${esc(k)}">${esc(k)}</span>`).join('') +
+    [...selKw].map(f => `<span class="tag" data-k="${esc(f)}">${esc(f)}</span>`).join('');
+  $('msg').textContent = list.length ? '' : '沒有符合的物件，試試放寬條件，或加 LINE 告訴我們需求。';
+
+  const pages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
+  if (PAGE > pages) PAGE = pages;
+  const from = (PAGE - 1) * PAGE_SIZE, shown = list.slice(from, from + PAGE_SIZE);
+  $('pinfo').textContent = list.length > PAGE_SIZE ? `第 ${PAGE} / ${pages} 頁（第 ${from + 1}–${from + shown.length} 間，共 ${list.length} 間）` : '';
+  $('pager').innerHTML = pages > 1 ? pagerHtml(PAGE, pages) : '';
+  $('list').innerHTML = shown.map(o => {
+    const img = o.photos && o.photos.length ? photoUrl(o, o.photos[0]) : '';
+    const meta = [TYPES[o.cat], o._lay, o.ping ? o.ping + '坪' : '', o.floor ? o.floor + (/^\d+$/.test(o.floor) ? 'F' : '') : ''].filter(Boolean).join(' · ');
+    return `<a class="item" href="#${esc(o.id)}">
+      <div class="ph" style="background-image:url('${esc(img)}')" role="img" aria-label="${esc(o.title)}">${o.photos && o.photos.length ? `<span class="n">${o.photos.length} 張</span>` : ''}</div>
+      <div class="ib">
+        <div class="ar">${esc(o.area)}${o.road ? '・' + esc(o.road) : ''}</div>
+        <div class="ti">${esc(o.title)}</div>
+        <div class="mt">${esc(meta)}</div>
+        <div class="mt">編號 ${esc(o.id)}</div>
+        <div class="pr">$${fmt(o.rent)}<small> /月</small></div>
+      </div></a>`;
+  }).join('');
+}
+function pagerHtml(cur, n){
+  const nums = [...new Set([1, cur - 2, cur - 1, cur, cur + 1, cur + 2, n])].filter(p => p >= 1 && p <= n).sort((a,b) => a - b);
+  let h = `<button data-p="${cur - 1}"${cur === 1 ? ' disabled' : ''}>上一頁</button>`, prev = 0;
+  nums.forEach(p => { if (p - prev > 1) h += '<span class="dots">…</span>'; h += `<button data-p="${p}"${p === cur ? ' class="on"' : ''}>${p}</button>`; prev = p; });
+  return h + `<button data-p="${cur + 1}"${cur === n ? ' disabled' : ''}>下一頁</button>`;
+}
+
+/* 物件詳細（網址 #編號，可以直接傳給客人） */
+let listScroll = 0;
+function openFromHash(){
+  const id = decodeURIComponent(location.hash.slice(1));
+  const o = id && ALL.find(x => x.id === id);
+  if (!o){ if ($('dv').classList.contains('open')){ $('dv').classList.remove('open'); document.body.classList.remove('lock'); window.scrollTo(0, listScroll); } return; }
+  if (!$('dv').classList.contains('open')) listScroll = window.scrollY;
+  const ph = o.photos || [];
+  const meta = [TYPES[o.cat], o._lay].filter(Boolean).join('・');
+  $('dvCode').textContent = '物件編號 ' + o.id;
+  $('dvIn').innerHTML =
+    `<div class="gal">${ph.length ? `<div class="slides" id="slides">${ph.map((f,i) => `<img src="${esc(photoUrl(o,f))}" alt="照片 ${i+1}" loading="${i<2?'eager':'lazy'}">`).join('')}</div>
+      <span class="cnt2" id="gcnt">1 / ${ph.length}</span>${ph.length > 1 ? '<button class="nav prev" id="gPrev" aria-label="上一張">‹</button><button class="nav next" id="gNext" aria-label="下一張">›</button>' : ''}`
+      : '<div class="nophoto">照片整理中</div>'}</div>
+    <div class="dv-body">
+      <div class="ar">${esc(o.area)}${o.road ? '・' + esc(o.road) : ''}${meta ? '｜' + esc(meta) : ''}</div>
+      <h2>${esc(o.title)}</h2>
+      <div class="dv-rent">$${fmt(o.rent)}<small> /月</small></div>
+      ${(o.feats||[]).length ? `<div class="fts">${o.feats.map(f => `<span>${esc(f)}</span>`).join('')}</div>` : ''}
+      ${(o.info||[]).length ? `<table class="tbl">${o.info.map(([k,v]) => `<tr><th>${esc(k)}</th><td>${esc(v)}</td></tr>`).join('')}</table>` : ''}
+      ${o.desc ? `<div class="desc">${esc(o.desc)}</div>` : ''}
+      <div class="ask">想看這間？詢問時請告訴我們物件編號 <b>${esc(o.id)}</b><br><a class="line" href="${LINE_URL}" target="_blank" rel="noopener">LINE 詢問這間</a>
+        <div class="phint">詳細地址、看房時間請加 LINE 洽詢。資料以現場為主。</div></div>
+    </div>`;
+  $('dv').classList.add('open'); $('dv').scrollTop = 0; document.body.classList.add('lock');
+  const sl = $('slides');
+  if (sl){
+    sl.onscroll = () => { $('gcnt').textContent = `${Math.round(sl.scrollLeft / sl.clientWidth) + 1} / ${ph.length}`; };
+    const go = d => sl.scrollBy({left: d * sl.clientWidth, behavior: 'smooth'});
+    if ($('gPrev')){ $('gPrev').onclick = () => go(-1); $('gNext').onclick = () => go(1); }
+  }
+}
+window.addEventListener('hashchange', openFromHash);
+let fromList = false;   // 從列表點進來的 → 返回＝瀏覽器上一頁；直接開分享連結的 → 回到列表
+$('dvBack').onclick = () => { if (fromList){ fromList = false; history.back(); } else location.hash = ''; };
+$('list').addEventListener('click', e => { if (e.target.closest('.item')) fromList = true; });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('dv').classList.contains('open')) location.hash = ''; });
+
+buildRent(); load();
+</script>
+</body>
+</html>
