@@ -170,7 +170,7 @@ button.dd::after{content:"▾";font-size:11px;opacity:.6}
 /* ===== 設定（只要改這裡）===== */
 const LANDLORD_ID = 'ualjjinlhrglzm69';            // 租租通「WOW台中租屋小幫手」
 const LINE_URL    = 'https://line.me/ti/p/4Kk6A8hKbV';
-const VERSION     = 'v1.10.0';
+const VERSION     = 'v1.10.1';
 const PAGE_SIZE   = 50;                              // 每頁幾間
 /* 瀏覽人次：用免費計數服務 abacus（不用註冊），顯示＝起始值＋實際次數；同一個瀏覽器分頁只算一次 */
 const COUNTER_START = 1500;
@@ -216,7 +216,7 @@ RENT_SETS.studio = RENT_SETS[''];
 RENT_SETS.shop = RENT_SETS.office = RENT_SETS.biz;
 /* ============================ */
 
-const API = p => `https://api.dd-room.com/api/v1/landlord/objects/${LANDLORD_ID}?category=&page=${p}&per_page=20&order=sort_at&sort=desc`;
+const API = p => `https://api.dd-room.com/api/v1/landlord/objects/${LANDLORD_ID}?category=&page=${p}&per_page=20&order=created_at&sort=asc`;
 const GROUPS = [
   ['市區',['中區','東區','西區','南區','北區','西屯區','南屯區','北屯區']],
   ['屯區',['大里區','太平區','霧峰區','烏日區']],

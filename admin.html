@@ -101,12 +101,12 @@ a{color:var(--ac)}
 const LANDLORD_ID = 'ualjjinlhrglzm69';
 const REPO        = 'tali4208-hub/WOWroom';   // GitHub 帳號/專案
 const FILE        = 'featured.json';
-const VERSION     = 'v1.9.0';
+const VERSION     = 'v1.10.1';
 const COUNTER_START = 1500;
 const COUNTER_URL   = 'https://abacus.jasoncameron.dev';
 const COUNTER_KEY   = 'wowroom-tali4208/visits';
 /* =============== */
-const API = p => `https://api.dd-room.com/api/v1/landlord/objects/${LANDLORD_ID}?category=&page=${p}&per_page=20&order=sort_at&sort=desc`;
+const API = p => `https://api.dd-room.com/api/v1/landlord/objects/${LANDLORD_ID}?category=&page=${p}&per_page=20&order=created_at&sort=asc`;
 const GH  = `https://api.github.com/repos/${REPO}/contents/${FILE}`;
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
